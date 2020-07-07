@@ -1,3 +1,7 @@
+void *orig_systemcall_table[NR_syscalls] = {
+	[0 ... NR_syscalls-1] = sys_ni_syscall
+};
+
 //==============================
 asmlinkage long
 nova_sys_open(const char __user *filename, int flags, umode_t mode) {
