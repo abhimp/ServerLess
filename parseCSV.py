@@ -78,6 +78,7 @@ def defineSystemCalls(parsedSysCalls):
 
 #     print(table)
 #     print(len(sysCallsMap))
+    print(origSyscallTable)
     print(definition)
     print(table)
     print(handled)
