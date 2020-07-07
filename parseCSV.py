@@ -16,14 +16,6 @@ def printBuf(*p, sep=' ', end='\n'):
     if len(BUFF) == 0: startBuf()
     BUFF[-1] += sep.join(str(x) for x in p) + end
 
-def printMySyscallDefinition(ret, name, origname, args, argsName):
-    printBuf("//"+"="*30)
-    printBuf(ret)
-    printBuf(f"{name}(" + ", ".join(args) + ") {")
-    printBuf("\t" f"return {origname}(" + ", ".join(argsName) + ");")
-    printBuf("}")
-    printBuf("")
-
 def parse(row, index):
     fndl = row[3].strip().strip(";")
     ret, funcName, args = None, None, []
@@ -43,34 +35,49 @@ def parse(row, index):
     return name, syscall, bind, (ret, funcName, args, argsName)
     #defineMySystemCall()
 
-def defineSystemCalls(parsedSysCalls):
+def printMySyscallDefinition(ret, name, origname, args, argsName):
+    printBuf("//"+"="*30)
+    printBuf(ret)
+    printBuf(f"{name}(" + ", ".join(args) + ") {")
+    printBuf("\t" f"{ret}(*origCall)(" + ", ".join(argsName) + f") = {origname};")
+    printBuf("\t" f"return origCall(" + ", ".join(argsName) + ");")
+    printBuf("}")
+    printBuf("")
 
-    calls = {}
+def defineSystemCalls(parsedSysCalls):
+    startBuf()
+    printBuf("void *orig_systemcall_table[NR_syscalls] = {")
+    printBuf("\t[0 ... NR_syscalls-1] = sys_ni_syscall")
+    printBuf("};")
+    origSyscallTable = endBuf()
+
+    sysCallsMap = {}
+
     startBuf()
     for syscall in parsedSysCalls:
         name, syscall, bind, call = syscall
         ret, funcName, args, argsName = call
         if not bind: continue
         newname = "nova_" + funcName
-        calls["NR_"+name] = newname;
-        printMySyscallDefinition(ret, newname, funcName, args, argsName)
+        sysCallsMap["NR_"+name] = newname;
+        printMySyscallDefinition(ret, newname, f"orig_systemcall_table[NR_{name}]", args, argsName)
     definition = endBuf()
 
     startBuf()
     printBuf("syscall_handler_t nova_syscall_table[NR_syscalls];")
-    for num, name in calls.items():
+    for num, name in sysCallsMap.items():
         printBuf(f"nova_syscall_table[{num}] = {name};")
     table = endBuf()
 
     startBuf()
     printBuf("")
     printBuf("int nova_handled_syscals[] = {")
-    printBuf("\t", ",\n\t".join(calls.keys()))
+    printBuf("\t", ",\n\t".join(sysCallsMap.keys()))
     printBuf("};")
     handled = endBuf()
 
 #     print(table)
-#     print(len(calls))
+#     print(len(sysCallsMap))
     print(definition)
     print(table)
     print(handled)
