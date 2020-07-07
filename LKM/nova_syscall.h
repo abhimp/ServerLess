@@ -72,32 +72,32 @@ nova_sys_pause(void) {
 
 //==============================
 asmlinkage long
-nova_sys_socket(int, int, int) {
-	return sys_socket(int, int, int);
+nova_sys_socket(int domain, int type, int protocol) {
+	return sys_socket(domain, type, protocol);
 }
 
 //==============================
 asmlinkage long
-nova_sys_accept(int, struct sockaddr __user *, int __user *) {
-	return sys_accept(int, , );
+nova_sys_accept(int sockfd, struct sockaddr __user *addr, int __user *addrlen) {
+	return sys_accept(sockfd, addr, addrlen);
 }
 
 //==============================
 asmlinkage long
-nova_sys_bind(int, struct sockaddr __user *, int) {
-	return sys_bind(int, , int);
+nova_sys_bind(int socketfd, struct sockaddr __user *addr, int addrlen) {
+	return sys_bind(socketfd, addr, addrlen);
 }
 
 //==============================
 asmlinkage long
-nova_sys_listen(int, int) {
-	return sys_listen(int, int);
+nova_sys_listen(int socket, int backlog) {
+	return sys_listen(socket, backlog);
 }
 
 //==============================
 asmlinkage long
-nova_sys_socketpair(int, int, int, int __user *) {
-	return sys_socketpair(int, int, int, );
+nova_sys_socketpair(int domain, int type, int protocol, int __user *socket_vector) {
+	return sys_socketpair(domain, type, protocol, socket_vector);
 }
 
 //==============================
@@ -108,8 +108,8 @@ nova_sys_setsockopt(int fd, int level, int optname, char __user *optval, int opt
 
 //==============================
 asmlinkage long
-nova_sys_clone(unsigned long, unsigned long, int __user *, unsigned long, int __user *) {
-	return sys_clone(long, long, , long, );
+nova_sys_clone(unsigned long fn, unsigned long stack, int __user *flags, unsigned long arg, int __user *arg2) {
+	return sys_clone(fn, stack, flags, arg, arg2);
 }
 
 //==============================
@@ -504,8 +504,8 @@ nova_sys_vhangup(void) {
 
 //==============================
 asmlinkage long
-nova_sys_modify_ldt(int, void __user *, unsigned long) {
-	return sys_modify_ldt(int, , long);
+nova_sys_modify_ldt(int func, void __user *ptr, unsigned long bytecount) {
+	return sys_modify_ldt(func, ptr, bytecount);
 }
 
 //==============================
@@ -606,8 +606,8 @@ nova_sys_setdomainname(char __user *name, int len) {
 
 //==============================
 asmlinkage long
-nova_sys_iopl(unsigned int) {
-	return sys_iopl(int);
+nova_sys_iopl(unsigned int level) {
+	return sys_iopl(level);
 }
 
 //==============================
@@ -966,8 +966,8 @@ nova_sys_faccessat(int dfd, const char __user *filename, int mode) {
 
 //==============================
 asmlinkage long
-nova_sys_pselect6(int, fd_set __user *, fd_set __user *, fd_set __user *, struct __kernel_timespec __user *, void __user *) {
-	return sys_pselect6(int, , , , , );
+nova_sys_pselect6(int nfds, fd_set __user *readfds, fd_set __user *writefds, fd_set __user *exceptfds, struct __kernel_timespec __user *timeout, void __user *sigmask) {
+	return sys_pselect6(nfds, readfds, writefds, exceptfds, timeout, sigmask);
 }
 
 //==============================
@@ -1020,8 +1020,8 @@ nova_sys_timerfd_gettime(int ufd, struct __kernel_itimerspec __user *otmr) {
 
 //==============================
 asmlinkage long
-nova_sys_accept4(int, struct sockaddr __user *, int __user *, int) {
-	return sys_accept4(int, , , int);
+nova_sys_accept4(int ufd, struct sockaddr __user * addr, int __user *addrlen, int flags) {
+	return sys_accept4(ufd, addr, addrlen, flags);
 }
 
 //==============================

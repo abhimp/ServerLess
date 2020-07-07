@@ -40,22 +40,22 @@
 38,setitimer,sys_setitimer,"asmlinkage long sys_setitimer(int which, struct itimerval __user *value, struct itimerval __user *ovalue);",Unblock,FALSE,PROC,,kernel/itimer.c
 39,getpid,sys_getpid,asmlinkage long sys_getpid(void);,YTD,FALSE,PROC,,kernel/sys.c
 40,sendfile,sys_sendfile64,"asmlinkage long sys_sendfile64(int out_fd, int in_fd, loff_t __user *offset, size_t count);",Unblock,FALSE,NET,Not required FD is restricted,fs/read_write.c
-41,socket,sys_socket,"asmlinkage long sys_socket(int, int, int);",Partial,TRUE,NET,Only stream socket is allowed,net/socket.c
+41,socket,sys_socket,"asmlinkage long sys_socket(int domain, int type, int protocol);",Partial,TRUE,NET,Only stream socket is allowed,net/socket.c
 42,connect,sys_connect,"asmlinkage long sys_connect(int, struct sockaddr __user *, int);",Unblock,FALSE,NET,,net/socket.c
-43,accept,sys_accept,"asmlinkage long sys_accept(int, struct sockaddr __user *, int __user *);",Block,TRUE,NET,,net/socket.c
-44,sendto,sys_sendto,"asmlinkage long sys_sendto(int, void __user *, size_t, unsigned, struct sockaddr __user *, int);",Unblock,FALSE,NET,,net/socket.c
-45,recvfrom,sys_recvfrom,"asmlinkage long sys_recvfrom(int, void __user *, size_t, unsigned, struct sockaddr __user *, int __user *);",Unblock,FALSE,NET,,net/socket.c
+43,accept,sys_accept,"asmlinkage long sys_accept(int sockfd, struct sockaddr __user *addr, int __user *addrlen);",Block,TRUE,NET,,net/socket.c
+44,sendto,sys_sendto,"asmlinkage long sys_sendto(int socket, void __user *message, size_t length, unsigned flags, struct sockaddr __user * dest_addr, int dest_len);",Unblock,FALSE,NET,,net/socket.c
+45,recvfrom,sys_recvfrom,"asmlinkage long sys_recvfrom(int socket, void __user *buffer, size_t length, unsigned flags, struct sockaddr __user *addr, int __user *addr_len);",Unblock,FALSE,NET,,net/socket.c
 46,sendmsg,sys_sendmsg,"asmlinkage long sys_sendmsg(int fd, struct user_msghdr __user *msg, unsigned flags);",Unblock,FALSE,NET,,net/socket.c
 47,recvmsg,sys_recvmsg,"asmlinkage long sys_recvmsg(int fd, struct user_msghdr __user *msg, unsigned flags);",Unblock,FALSE,NET,,net/socket.c
-48,shutdown,sys_shutdown,"asmlinkage long sys_shutdown(int, int);",Unblock,FALSE,NET,,net/socket.c
-49,bind,sys_bind,"asmlinkage long sys_bind(int, struct sockaddr __user *, int);",Block,TRUE,NET,,net/socket.c
-50,listen,sys_listen,"asmlinkage long sys_listen(int, int);",Block,TRUE,NET,,net/socket.c
+48,shutdown,sys_shutdown,"asmlinkage long sys_shutdown(int sockfd, int how);",Unblock,FALSE,NET,,net/socket.c
+49,bind,sys_bind,"asmlinkage long sys_bind(int socketfd, struct sockaddr __user *addr, int addrlen);",Block,TRUE,NET,,net/socket.c
+50,listen,sys_listen,"asmlinkage long sys_listen(int socket, int backlog);",Block,TRUE,NET,,net/socket.c
 51,getsockname,sys_getsockname,"asmlinkage long sys_getsockname(int, struct sockaddr __user *, int __user *);",Unblock,FALSE,NET,,net/socket.c
 52,getpeername,sys_getpeername,"asmlinkage long sys_getpeername(int, struct sockaddr __user *, int __user *);",Unblock,FALSE,NET,,net/socket.c
-53,socketpair,sys_socketpair,"asmlinkage long sys_socketpair(int, int, int, int __user *);",Block,TRUE,NET,Used to create local socket,net/socket.c
+53,socketpair,sys_socketpair,"asmlinkage long sys_socketpair(int domain, int type, int protocol, int __user *socket_vector);",Block,TRUE,NET,Used to create local socket,net/socket.c
 54,setsockopt,sys_setsockopt,"asmlinkage long sys_setsockopt(int fd, int level, int optname, char __user *optval, int optlen);",Block,TRUE,NET,,net/socket.c
 55,getsockopt,sys_getsockopt,"asmlinkage long sys_getsockopt(int fd, int level, int optname, char __user *optval, int __user *optlen);",Unblock,FALSE,NET,,net/socket.c
-56,clone,sys_clone,"asmlinkage long sys_clone(unsigned long, unsigned long, int __user *, unsigned long, int __user *);",Block,TRUE,PROC,,kernel/fork.c
+56,clone,sys_clone,"asmlinkage long sys_clone(unsigned long fn, unsigned long stack, int __user *flags, unsigned long arg, int __user *arg2);",Block,TRUE,PROC,,kernel/fork.c
 57,fork,sys_fork,asmlinkage long sys_fork(void);,Block,TRUE,PROC,,kernel/fork.c
 58,vfork,sys_vfork,asmlinkage long sys_vfork(void);,Block,TRUE,PROC,,kernel/fork.c
 59,execve,sys_execve,"asmlinkage long sys_execve(const char __user *filename, const char __user *const __user *argv, const char __user *const __user *envp);",Block,TRUE,PROC,,fs/exec.c
@@ -153,7 +153,7 @@
 151,mlockall,sys_mlockall,asmlinkage long sys_mlockall(int flags);,YTD,FALSE,MM,,mm/mlock.c
 152,munlockall,sys_munlockall,asmlinkage long sys_munlockall(void);,YTD,FALSE,MM,,mm/mlock.c
 153,vhangup,sys_vhangup,asmlinkage long sys_vhangup(void);,Block,TRUE,PROC,,fs/open.c
-154,modify_ldt,sys_modify_ldt,"asmlinkage long sys_modify_ldt(int , void __user *, unsigned long );",Block,TRUE,PROC,,arch/x86/um/ldt.c
+154,modify_ldt,sys_modify_ldt,"asmlinkage long sys_modify_ldt(int func, void __user *ptr, unsigned long bytecount);",Block,TRUE,PROC,,arch/x86/um/ldt.c
 155,pivot_root,sys_pivot_root,"asmlinkage long sys_pivot_root(const char __user *new_root, const char __user *put_old);",Block,TRUE,PROC,,fs/namespace.c
 156,_sysctl,sys_sysctl,asmlinkage long sys_sysctl(struct __sysctl_args __user *args);,Block,TRUE,KERN,,kernel/sysctl_binary.c
 157,prctl,sys_prctl,"asmlinkage long sys_prctl(int option, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5);",Block,TRUE,PROC,,kernel/sys.c
@@ -171,7 +171,7 @@
 169,reboot,sys_reboot,"asmlinkage long sys_reboot(int magic1, int magic2, unsigned int cmd, void __user *arg);",Block,TRUE,KERN,,kernel/reboot.c
 170,sethostname,sys_sethostname,"asmlinkage long sys_sethostname(char __user *name, int len);",Block,TRUE,KERN,,kernel/sys.c
 171,setdomainname,sys_setdomainname,"asmlinkage long sys_setdomainname(char __user *name, int len);",Block,TRUE,KERN,,kernel/sys.c
-172,iopl,stub_iopl,asmlinkage long sys_iopl(unsigned int );,Block,TRUE,KERN,,arch/x86/kernel/ioport.c
+172,iopl,stub_iopl,asmlinkage long sys_iopl(unsigned int level);,Block,TRUE,KERN,,arch/x86/kernel/ioport.c
 173,ioperm,sys_ioperm,"asmlinkage long sys_ioperm(unsigned long from, unsigned long num, int on);",Block,TRUE,KERN,,arch/x86/kernel/ioport.c
 174,create_module,,No longer exists,Unblock,FALSE,KERN,,NOT IMPLEMENTED
 175,init_module,sys_init_module,"asmlinkage long sys_init_module(void __user *umod, unsigned long len, const char __user *uargs);",Block,TRUE,KERN,,kernel/module.c
@@ -269,7 +269,7 @@
 267,readlinkat,sys_readlinkat,"asmlinkage long sys_readlinkat(int dfd, const char __user *path, char __user *buf, int bufsiz);",Block,TRUE,FS,,fs/stat.c
 268,fchmodat,sys_fchmodat,"asmlinkage long sys_fchmodat(int dfd, const char __user * filename, umode_t mode);",Block,TRUE,FS,,fs/open.c
 269,faccessat,sys_faccessat,"asmlinkage long sys_faccessat(int dfd, const char __user *filename, int mode);",Block,TRUE,FS,,fs/open.c
-270,pselect6,sys_pselect6,"asmlinkage long sys_pselect6(int, fd_set __user *, fd_set __user *, fd_set __user *, struct __kernel_timespec __user *, void __user *);",Unblock,TRUE,FS,,fs/select.c
+270,pselect6,sys_pselect6,"asmlinkage long sys_pselect6(int nfds, fd_set __user *readfds, fd_set __user *writefds, fd_set __user *exceptfds, struct __kernel_timespec __user *timeout, void __user *sigmask);",Unblock,TRUE,FS,,fs/select.c
 271,ppoll,sys_ppoll,"asmlinkage long sys_ppoll(struct pollfd __user *, unsigned int, struct __kernel_timespec __user *, const sigset_t __user *, size_t);",Unblock,FALSE,FS,,fs/select.c
 272,unshare,sys_unshare,asmlinkage long sys_unshare(unsigned long unshare_flags);,Block,TRUE,PROC,,kernel/fork.c
 273,set_robust_list,sys_set_robust_list,"asmlinkage long sys_set_robust_list(struct robust_list_head __user *head, size_t len);",Block,TRUE,PROC,,kernel/futex.c
@@ -287,7 +287,7 @@
 285,fallocate,sys_fallocate,"asmlinkage long sys_fallocate(int fd, int mode, loff_t offset, loff_t len);",Block,TRUE,FS,,fs/open.c
 286,timerfd_settime,sys_timerfd_settime,"asmlinkage long sys_timerfd_settime(int ufd, int flags, const struct __kernel_itimerspec __user *utmr, struct __kernel_itimerspec __user *otmr);",Unblock,TRUE,FS,,fs/timerfd.c
 287,timerfd_gettime,sys_timerfd_gettime,"asmlinkage long sys_timerfd_gettime(int ufd, struct __kernel_itimerspec __user *otmr);",Unblock,TRUE,FS,,fs/timerfd.c
-288,accept4,sys_accept4,"asmlinkage long sys_accept4(int, struct sockaddr __user *, int __user *, int);",Block,TRUE,NET,,net/socket.c
+288,accept4,sys_accept4,"asmlinkage long sys_accept4(int ufd, struct sockaddr __user * addr, int __user *addrlen, int flags);",Block,TRUE,NET,,net/socket.c
 289,signalfd4,sys_signalfd4,"asmlinkage long sys_signalfd4(int ufd, sigset_t __user *user_mask, size_t sizemask, int flags);",Unblock,FALSE,PROC,,fs/signalfd.c
 290,eventfd2,sys_eventfd2,"asmlinkage long sys_eventfd2(unsigned int count, int flags);",Block,TRUE,FS,,fs/eventfd.c
 291,epoll_create1,sys_epoll_create1,asmlinkage long sys_epoll_create1(int flags);,Unblock,FALSE,PROC,,fs/eventpoll.c

@@ -2,12 +2,15 @@
 #include <linux/module.h>
 #include <linux/proc_fs.h>
 #include <linux/uaccess.h>
+#include <linux/syscalls.h>
+
+#include "nova_syscall.h"
 
 MODULE_LICENSE("GPL");
 
 #define LKM_INTERFACE_FILE_PROC "hello"
 
-static struct file_operations file_ops;
+static struct proc_ops file_ops;
 static char buffer[256] = {0}; static int buffer_len = 0;
 
 static ssize_t write(struct file *file, const char *buf, size_t count, loff_t *pos) {
@@ -32,19 +35,20 @@ static ssize_t read(struct file *file, char *buf, size_t count, loff_t *pos) {
 
 static int hello_init(void)
 {
+    struct proc_dir_entry *entry;
     printk(KERN_ALERT "Hello, world\n");
-    struct proc_dir_entry *entry = proc_create(LKM_INTERFACE_FILE_PROC, 0, NULL, &file_ops);
+    entry = proc_create(LKM_INTERFACE_FILE_PROC, 0666, NULL, &file_ops);
     if(!entry) return -ENOENT;
-    file_ops.owner = THIS_MODULE;
-    file_ops.write = write;
-    file_ops.read = read;
+//     file_ops.owner = THIS_MODULE;
+    file_ops.proc_write = write;
+    file_ops.proc_read = read;
     return 0;
 }
 
 
 static void hello_exit(void)
 {
-    remove_proc_entry(LKM, NULL);
+    remove_proc_entry(LKM_INTERFACE_FILE_PROC, NULL);
     printk(KERN_ALERT "Goodbye, you awesome people\n");
 }
 
