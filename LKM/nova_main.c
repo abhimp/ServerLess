@@ -99,10 +99,12 @@ static ssize_t write(struct file *file, const char *buf, size_t count, loff_t *p
 }
 
 static ssize_t read(struct file *file, char *buf, size_t count, loff_t *pos) {
-    return -EINVAL;
-//     int ret = buffer_len;
-//     if(!buffer_len) return 0;
-//     if(!buf || !count) return -EINVAL;
+//     return -EINVAL;
+    int ret = 0;
+    if(!buf || !count) return -EINVAL;
+    if(count < 10) return -EINVAL;
+    ret = snprintf(buf, count, "%ld\n", functionRedirected);
+    return ret;
 //     if(copy_to_user(buf, buffer, buffer_len)) return -ENOBUFS;
 //
 //     printk(KERN_INFO "%.*s", (int)buffer_len, buffer);

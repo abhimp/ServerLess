@@ -41,6 +41,7 @@ def printMySyscallDefinition(ret, name, origname, args, argsName):
     printBuf(f"{name}(" + ", ".join(args) + ") {")
     printBuf("\t" f"{ret} (*origCall)(" + ", ".join(args) + f") = (void *) {origname};")
     printBuf("\t" f"printk(KERN_ALERT \"Redirected {origname} called\\n\");")
+    printBuf("\t" "functionRedirected += 1;")
     printBuf("\t" f"return origCall(" + ", ".join(argsName) + ");")
     printBuf("}")
     printBuf("")
@@ -62,6 +63,8 @@ def setupMacros():
     printBuf("#define NOVA_RESTORE(x, y) { \\")
     printBuf("\t", "y[__NR_##x] = orig_systemcall_table[__NR_##x]; \\")
     printBuf("}")
+    printBuf("")
+    printBuf("static long functionRedirected = 0;")
 
 def defineSystemCalls(parsedSysCalls):
     startBuf()
