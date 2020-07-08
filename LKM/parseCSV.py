@@ -40,7 +40,7 @@ def printMySyscallDefinition(ret, name, origname, args, argsName):
     printBuf("static asmlinkage", ret)
     printBuf(f"{name}(" + ", ".join(args) + ") {")
     printBuf("\t" f"{ret} (*origCall)(" + ", ".join(args) + f") = (void *) {origname};")
-    printBuf("\t" f"printk(KERN_ALERT \"Redirected {origname} called\");")
+    printBuf("\t" f"printk(KERN_ALERT \"Redirected {origname} called\\n\");")
     printBuf("\t" f"return origCall(" + ", ".join(argsName) + ");")
     printBuf("}")
     printBuf("")
