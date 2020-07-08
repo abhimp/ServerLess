@@ -50,7 +50,7 @@ static void configureSyscallRedirection(void) {
     sys_call_table = (void *) kallsyms_lookup_name(sym_name);
 
     //TODO add a loop
-    printk(KERN_ALERT "orig open: %d", sys_call_table[__NR_open]);
+    printk(KERN_ALERT "orig open: %p", sys_call_table[__NR_open]);
     NOVA_STORE_ORIG(open, sys_call_table);
 
 //     write_cr0(read_cr0() & (~0x10000)); //remove write protection
@@ -58,7 +58,7 @@ static void configureSyscallRedirection(void) {
 
     //TODO add another loop
     NOVA_REDIRECT(open, sys_call_table);
-    printk(KERN_ALERT "tainted open: %d", sys_call_table[__NR_open]);
+    printk(KERN_ALERT "tainted open: %p", sys_call_table[__NR_open]);
 
     enable_write_protection();
 //     write_cr0(read_cr0() | 0x10000); //restore write protection
