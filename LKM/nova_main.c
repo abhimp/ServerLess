@@ -20,6 +20,19 @@ MODULE_LICENSE("GPL");
 
 #define LKM_INTERFACE_FILE_PROC "hello"
 
+#define CR0_WRITE_UNLOCK(x) \
+    do { \
+        unsigned long __cr0; \
+        preempt_disable(); \
+        __cr0 = read_cr0() & (~X86_CR0_WP); \
+        BUG_ON(unlikely((__cr0 & X86_CR0_WP))); \
+        write_cr0(__cr0); \
+        x; \
+        __cr0 = read_cr0() | X86_CR0_WP; \
+        BUG_ON(unlikely(!(__cr0 & X86_CR0_WP))); \
+        write_cr0(__cr0); \
+        preempt_enable(); \
+    } while (0)
 
 inline void mywrite_cr0(unsigned long cr0) {
     asm volatile("mov %0,%%cr0" : "+r"(cr0), "+m"(__force_order));
@@ -54,12 +67,13 @@ static void configureSyscallRedirection(void) {
     NOVA_STORE_ORIG(open, sys_call_table);
 
 //     write_cr0(read_cr0() & (~0x10000)); //remove write protection
-    disable_write_protection();
+//     disable_write_protection();
 
+    CR0_WRITE_UNLOCK({
     //TODO add another loop
     NOVA_REDIRECT(open, sys_call_table);
-
-    enable_write_protection();
+    });
+//     enable_write_protection();
     printk(KERN_ALERT "tainted open: %p\n", sys_call_table[__NR_open]);
 //     write_cr0(read_cr0() | 0x10000); //restore write protection
 }
@@ -74,12 +88,14 @@ static void restorSyscallRedirection(void) {
     sys_call_table = (void **) kallsyms_lookup_name(sym_name);
 
 //     write_cr0(read_cr0() & (~0x10000)); //remove write protection
-    disable_write_protection();
+//     disable_write_protection();
+    CR0_WRITE_UNLOCK({
 
     //TODO add another loop
     NOVA_RESTORE(open, sys_call_table);
+    });
 
-    enable_write_protection();
+//     enable_write_protection();
 
 //     write_cr0(read_cr0() | 0x10000); //restore write protection
 }
