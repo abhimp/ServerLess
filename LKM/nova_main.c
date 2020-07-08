@@ -58,9 +58,9 @@ static void configureSyscallRedirection(void) {
 
     //TODO add another loop
     NOVA_REDIRECT(open, sys_call_table);
-    printk(KERN_ALERT "tainted open: %p\n", sys_call_table[__NR_open]);
 
     enable_write_protection();
+    printk(KERN_ALERT "tainted open: %p\n", sys_call_table[__NR_open]);
 //     write_cr0(read_cr0() | 0x10000); //restore write protection
 }
 
