@@ -20,6 +20,24 @@ MODULE_LICENSE("GPL");
 
 #define LKM_INTERFACE_FILE_PROC "hello"
 
+
+inline void mywrite_cr0(unsigned long cr0) {
+    asm volatile("mov %0,%%cr0" : "+r"(cr0), "+m"(__force_order));
+}
+
+void enable_write_protection(void) {
+    unsigned long cr0 = read_cr0();
+    set_bit(16, &cr0);
+    mywrite_cr0(cr0);
+}
+
+void disable_write_protection(void) {
+    unsigned long cr0 = read_cr0();
+    clear_bit(16, &cr0);
+    mywrite_cr0(cr0);
+}
+
+
 static char redirectionConfigured = 0;
 
 static void configureSyscallRedirection(void) {
@@ -34,12 +52,14 @@ static void configureSyscallRedirection(void) {
     //TODO add a loop
     NOVA_STORE_ORIG(open, sys_call_table);
 
-    write_cr0(read_cr0() & (~0x10000)); //remove write protection
+//     write_cr0(read_cr0() & (~0x10000)); //remove write protection
+    disable_write_protection();
 
     //TODO add another loop
     NOVA_REDIRECT(open, sys_call_table);
 
-    write_cr0(read_cr0() | 0x10000); //restore write protection
+    enable_write_protection();
+//     write_cr0(read_cr0() | 0x10000); //restore write protection
 }
 
 static void restorSyscallRedirection(void) {
@@ -51,12 +71,15 @@ static void restorSyscallRedirection(void) {
 
     sys_call_table = (void **) kallsyms_lookup_name(sym_name);
 
-    write_cr0(read_cr0() & (~0x10000)); //remove write protection
+//     write_cr0(read_cr0() & (~0x10000)); //remove write protection
+    disable_write_protection();
 
     //TODO add another loop
     NOVA_RESTORE(open, sys_call_table);
 
-    write_cr0(read_cr0() | 0x10000); //restore write protection
+    enable_write_protection();
+
+//     write_cr0(read_cr0() | 0x10000); //restore write protection
 }
 // static char buffer[256] = {0}; static int buffer_len = 0;
 
