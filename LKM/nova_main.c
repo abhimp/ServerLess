@@ -20,7 +20,6 @@ MODULE_LICENSE("GPL");
 
 #define LKM_INTERFACE_FILE_PROC "hello"
 
-static struct proc_ops file_ops;
 static char buffer[256] = {0}; static int buffer_len = 0;
 
 static ssize_t write(struct file *file, const char *buf, size_t count, loff_t *pos) {
@@ -41,6 +40,34 @@ static ssize_t read(struct file *file, char *buf, size_t count, loff_t *pos) {
     printk(KERN_INFO "%.*s", (int)buffer_len, buffer);
     buffer_len = 0;
     return ret;
+}
+
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,7,0)
+static struct file_operations file_ops;
+static struct proc_dir_entry *init_procfile(void) {
+    struct proc_dir_entry *entry;
+    entry = proc_create(LKM_INTERFACE_FILE_PROC, 0666, NULL, &file_ops);
+    if(!entry) return entry;
+    file_ops.owner = THIS_MODULE;
+    file_ops.write = write;
+    file_ops.read = read;
+    return entry;
+}
+#else
+static struct proc_ops file_ops;
+static struct proc_dir_entry *init_procfile(void) {
+    struct proc_dir_entry *entry;
+    entry = proc_create(LKM_INTERFACE_FILE_PROC, 0666, NULL, &file_ops);
+    if(!entry) return entry;
+    file_ops.proc_write = write;
+    file_ops.proc_read = read;
+    return entry;
+}
+#endif
+
+static void remove_procfile(void) {
+    remove_proc_entry(LKM_INTERFACE_FILE_PROC, NULL);
 }
 
 static void configureSyscallRedirection(void) {
@@ -77,13 +104,10 @@ static void restorSyscallRedirection(void) {
 static int hello_init(void)
 {
     struct proc_dir_entry *entry;
+    entry = init_procfile();
+    if(!entry) return -ENOENT;
 
     printk(KERN_ALERT "Hello, world\n");
-    entry = proc_create(LKM_INTERFACE_FILE_PROC, 0666, NULL, &file_ops);
-    if(!entry) return -ENOENT;
-//     file_ops.owner = THIS_MODULE;
-    file_ops.proc_write = write;
-    file_ops.proc_read = read;
 
     configureSyscallRedirection();
 
@@ -93,7 +117,7 @@ static int hello_init(void)
 
 static void hello_exit(void)
 {
-    remove_proc_entry(LKM_INTERFACE_FILE_PROC, NULL);
+    remove_procfile();
     restorSyscallRedirection();
     printk(KERN_ALERT "Goodbye, you awesome people\n");
 }
