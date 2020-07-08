@@ -39,14 +39,18 @@ def printMySyscallDefinition(ret, name, origname, args, argsName):
     printBuf("//"+"="*30)
     printBuf("static asmlinkage", ret)
     printBuf(f"{name}(" + ", ".join(args) + ") {")
-    printBuf("\t" f"{ret} (*origCall)(" + ", ".join(args) + f") = {origname};")
+    printBuf("\t" f"{ret} (*origCall)(" + ", ".join(args) + f") = (void *) {origname};")
     printBuf("\t" f"printk(KERN_ALERT \"Redirected {origname} called\");")
     printBuf("\t" f"return origCall(" + ", ".join(argsName) + ");")
     printBuf("}")
     printBuf("")
 
 def setupMacros():
+    printBuf("")
+    printBuf("typedef asmlinkage long (*sys_call_ptr_t)(const struct pt_regs *);")
+    printBuf("")
     printBuf("#define NOVA_max_syscalls 512 //it was hard to find a header which define it")
+    printBuf("")
     printBuf("#define NOVA_STORE_ORIG(x, y) { \\")
     printBuf("\t" "orig_systemcall_table[__NR_##x] = y[__NR_##x]; \\")
     printBuf("}")
@@ -68,7 +72,7 @@ def defineSystemCalls(parsedSysCalls):
     headers = endBuf()
 
     startBuf()
-    printBuf("static void *orig_systemcall_table[NOVA_max_syscalls] = {")
+    printBuf("static sys_call_ptr_t orig_systemcall_table[NOVA_max_syscalls] = {")
     printBuf("\t[0 ... NOVA_max_syscalls-1] = NULL")
     printBuf("};")
     origSyscallTable = endBuf()
@@ -86,10 +90,10 @@ def defineSystemCalls(parsedSysCalls):
     definition = endBuf()
 
     startBuf()
-    printBuf("static void *nova_syscall_table[NOVA_max_syscalls] = {")
+    printBuf("static sys_call_ptr_t nova_syscall_table[NOVA_max_syscalls] = {")
     printBuf("\t" "[0 ... NOVA_max_syscalls-1] = NULL,")
     for num, name in sysCallsMap.items():
-        printBuf("\t" f"[{num}] = {name},")
+        printBuf("\t" f"[{num}] = (sys_call_ptr_t) {name},")
     printBuf("};")
     table = endBuf()
 
