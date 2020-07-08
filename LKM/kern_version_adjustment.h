@@ -4,6 +4,10 @@
 #define __kernel_old_timeval timeval
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,1,0)
+#define __kernel_timex timex
+#endif
+
 // # include <asm/ldt.h>
 
 #if defined __i386__ || defined __x86_64__
