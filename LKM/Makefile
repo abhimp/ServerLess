@@ -18,5 +18,5 @@ nova_syscall.h: parseCSV.py syscall.csv
 add:
 	sudo insmod $(modname).ko
 
-remove:
+del:
 	sudo rmmod $(modname)
