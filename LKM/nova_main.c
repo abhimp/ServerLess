@@ -126,10 +126,10 @@ static ssize_t read(struct file *file, char *buf, size_t count, loff_t *pos) {
     int ret = 0;
     char buffer[32];
     if(!buf || !count) return -EINVAL;
-    if(count < 10 || *pos < 0) return -EINVAL;
-    if(*pos >= 10) return 0;
+    if(count < 20 || *pos < 0) return -EINVAL;
+    if(*pos >= 20) return 0;
 
-    ret = snprintf(buffer, 32, "%ld\n", functionRedirected);
+    ret = snprintf(buffer, 32, "%ld %ld\n", functionRedirected, activeRedirection);
 
     if (count < ret)
         ret = count;

@@ -39,10 +39,14 @@ def printMySyscallDefinition(ret, name, origname, args, argsName):
     printBuf("//"+"="*30)
     printBuf("static asmlinkage", ret)
     printBuf(f"{name}(" + ", ".join(args) + ") {")
+    printBuf("\t" f"{ret} ret;")
     printBuf("\t" f"{ret} (*origCall)(" + ", ".join(args) + f") = (void *) {origname};")
 #     printBuf("\t" f"printk(KERN_WARNING \"Redirected {origname} called\\n\");")
     printBuf("\t" "functionRedirected += 1;")
-    printBuf("\t" f"return origCall(" + ", ".join(argsName) + ");")
+    printBuf("\t" "activeRedirection += 1;")
+    printBuf("\t" f"ret = origCall(" + ", ".join(argsName) + ");")
+    printBuf("\t" "activeRedirection -= 1;")
+    printBuf("\t" "return ret;")
     printBuf("}")
     printBuf("")
 
@@ -65,6 +69,9 @@ def setupMacros():
     printBuf("}")
     printBuf("")
     printBuf("static long functionRedirected = 0;")
+    printBuf("static long activeRedirection = 0;")
+    printBuf("")
+    printBuf("#define RESET_COUNTER functionRedirected=0")
 
 def defineSystemCalls(parsedSysCalls):
     startBuf()
