@@ -56,22 +56,31 @@ static char redirectionConfigured = 0;
 static void configureSyscallRedirection(void) {
     char *sym_name = "sys_call_table";
     void **sys_call_table;
+    int i, numHandled;
 
     if(redirectionConfigured) return;
     redirectionConfigured = 1;
 
+    numHandled = sizeof(nova_handled_syscals)/sizeof(nova_handled_syscals[0]);
+
     sys_call_table = (void *) kallsyms_lookup_name(sym_name);
 
     //TODO add a loop
-    printk(KERN_ALERT "orig open: %p\n", sys_call_table[__NR_open]);
-    NOVA_STORE_ORIG(__NR_open, sys_call_table);
+    for(i = 0; i < numHandled; i++) {
+        NOVA_STORE_ORIG(nova_handled_syscals[i], sys_call_table);
+    }
+//     printk(KERN_ALERT "orig open: %p\n", sys_call_table[__NR_open]);
+//     NOVA_STORE_ORIG(__NR_open, sys_call_table);
 
 //     write_cr0(read_cr0() & (~0x10000)); //remove write protection
 //     disable_write_protection();
 
     CR0_WRITE_UNLOCK({
     //TODO add another loop
-    NOVA_REDIRECT(__NR_open, sys_call_table);
+        for(i = 0; i < numHandled; i++) {
+            NOVA_REDIRECT(nova_handled_syscals[i], sys_call_table);
+        }
+//     NOVA_REDIRECT(__NR_open, sys_call_table);
     });
 //     enable_write_protection();
     printk(KERN_ALERT "tainted open: %p\n", sys_call_table[__NR_open]);
@@ -82,9 +91,12 @@ static void configureSyscallRedirection(void) {
 static void restorSyscallRedirection(void) {
     char *sym_name = "sys_call_table";
     void **sys_call_table;
+    int i, numHandled;
 
     if(!redirectionConfigured) return;
     redirectionConfigured = 0;
+
+    numHandled = sizeof(nova_handled_syscals)/sizeof(nova_handled_syscals[0]);
 
     sys_call_table = (void **) kallsyms_lookup_name(sym_name);
 
@@ -93,7 +105,10 @@ static void restorSyscallRedirection(void) {
     CR0_WRITE_UNLOCK({
 
     //TODO add another loop
-    NOVA_RESTORE(__NR_open, sys_call_table);
+        for(i = 0; i < numHandled; i++) {
+            NOVA_REDIRECT(nova_handled_syscals[i], sys_call_table);
+        }
+//     NOVA_RESTORE(__NR_open, sys_call_table);
     });
 
     printk(KERN_ALERT "tainted syscall removed\n");

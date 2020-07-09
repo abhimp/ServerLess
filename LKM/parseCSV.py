@@ -103,7 +103,7 @@ def defineSystemCalls(parsedSysCalls):
     startBuf()
     printBuf("")
     printBuf("static int nova_handled_syscals[] = {")
-    printBuf("\t", ",\n\t".join(sysCallsMap.keys()))
+    printBuf("\t" ",\n\t".join(sysCallsMap.keys()))
     printBuf("};")
     handled = endBuf()
 
