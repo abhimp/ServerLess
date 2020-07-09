@@ -106,7 +106,7 @@ static void restorSyscallRedirection(void) {
 
     //TODO add another loop
         for(i = 0; i < numHandled; i++) {
-            NOVA_REDIRECT(nova_handled_syscals[i], sys_call_table);
+            NOVA_RESTORE(nova_handled_syscals[i], sys_call_table);
         }
 //     NOVA_RESTORE(__NR_open, sys_call_table);
     });
