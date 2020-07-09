@@ -8,6 +8,14 @@
 #define __kernel_timex timex
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0)
+#define __kernel_timespec timespec
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,6,0)
+#define __kernel_itimerspec itimerspec
+#endif
+
 // # include <asm/ldt.h>
 
 #if defined __i386__ || defined __x86_64__
