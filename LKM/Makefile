@@ -20,3 +20,9 @@ add:
 
 del:
 	sudo rmmod $(modname)
+
+enable:
+	echo 1 > /proc/hello
+
+disable:
+	python3.7 -c 'open("/proc/hello", "wb").write(b"\0\0\0")'
