@@ -64,14 +64,14 @@ static void configureSyscallRedirection(void) {
 
     //TODO add a loop
     printk(KERN_ALERT "orig open: %p\n", sys_call_table[__NR_open]);
-    NOVA_STORE_ORIG(open, sys_call_table);
+    NOVA_STORE_ORIG(__NR_open, sys_call_table);
 
 //     write_cr0(read_cr0() & (~0x10000)); //remove write protection
 //     disable_write_protection();
 
     CR0_WRITE_UNLOCK({
     //TODO add another loop
-    NOVA_REDIRECT(open, sys_call_table);
+    NOVA_REDIRECT(__NR_open, sys_call_table);
     });
 //     enable_write_protection();
     printk(KERN_ALERT "tainted open: %p\n", sys_call_table[__NR_open]);
@@ -93,7 +93,7 @@ static void restorSyscallRedirection(void) {
     CR0_WRITE_UNLOCK({
 
     //TODO add another loop
-    NOVA_RESTORE(open, sys_call_table);
+    NOVA_RESTORE(__NR_open, sys_call_table);
     });
 
     printk(KERN_ALERT "tainted syscall removed\n");
@@ -118,6 +118,8 @@ static ssize_t read(struct file *file, char *buf, size_t count, loff_t *pos) {
 
     if (count < ret)
         ret = count;
+
+    if(*pos >= ret) return 0;
 
     if(copy_to_user(buf, buffer + (*pos), ret)) return -ENOBUFS;
 
