@@ -75,6 +75,7 @@ static void configureSyscallRedirection(void) {
     });
 //     enable_write_protection();
     printk(KERN_ALERT "tainted open: %p\n", sys_call_table[__NR_open]);
+    printk(KERN_ALERT "tainted syscall added\n");
 //     write_cr0(read_cr0() | 0x10000); //restore write protection
 }
 
@@ -95,11 +96,8 @@ static void restorSyscallRedirection(void) {
     NOVA_RESTORE(open, sys_call_table);
     });
 
-//     enable_write_protection();
-
-//     write_cr0(read_cr0() | 0x10000); //restore write protection
+    printk(KERN_ALERT "tainted syscall removed\n");
 }
-// static char buffer[256] = {0}; static int buffer_len = 0;
 
 static ssize_t write(struct file *file, const char *buf, size_t count, loff_t *pos) {
     if(!buf || !count) return -EINVAL;
@@ -107,25 +105,25 @@ static ssize_t write(struct file *file, const char *buf, size_t count, loff_t *p
     else restorSyscallRedirection();
     return 1;
 
-//     if(copy_from_user(buffer, buf, count < 256 ? count:256)) return -ENOBUFS;
-//
-//     buffer_len = count < 256 ? count:256;
-//     printk(KERN_INFO "%.*s", (int)count, buf);
-//     return buffer_len;
 }
 
 static ssize_t read(struct file *file, char *buf, size_t count, loff_t *pos) {
-//     return -EINVAL;
     int ret = 0;
+    char buffer[32];
     if(!buf || !count) return -EINVAL;
-    if(count < 10) return -EINVAL;
-    ret = snprintf(buf, count, "%ld\n", functionRedirected);
+    if(count < 10 || *pos < 0) return -EINVAL;
+    if(*pos >= 10) return 0;
+
+    ret = snprintf(buffer, 32, "%ld\n", functionRedirected);
+
+    if (count < ret)
+        ret = count;
+
+    if(copy_to_user(buf, buffer + (*pos), ret)) return -ENOBUFS;
+
+    *pos += ret;
+
     return ret;
-//     if(copy_to_user(buf, buffer, buffer_len)) return -ENOBUFS;
-//
-//     printk(KERN_INFO "%.*s", (int)buffer_len, buffer);
-//     buffer_len = 0;
-//     return ret;
 }
 
 
@@ -174,7 +172,7 @@ static int hello_init(void)
 static void hello_exit(void)
 {
     remove_procfile();
-//     restorSyscallRedirection();
+    restorSyscallRedirection();
     printk(KERN_ALERT "Goodbye, you awesome people\n");
 }
 
