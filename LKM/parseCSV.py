@@ -55,6 +55,7 @@ def generateSourceFile(fileName, parsedSysCalls):
     printBuf("#define NOVA_REDIRECT_SOURCE") #need to identify variable definition
     printBuf("")
     printBuf(f"#include \"{fileName}.h\"")
+    printBuf("#include \"kern_version_adjustment.h\"")
     printBuf("")
     printBuf("static long functionRedirected = 0;")
     printBuf("static long activeRedirection = 0;")
