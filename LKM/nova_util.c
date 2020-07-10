@@ -11,7 +11,7 @@ static sys_call_ptr_t orig_systemcall_table[NOVA_max_syscalls] = {
     [0 ... NOVA_max_syscalls-1] = NULL
 };
 
-static void *handle_systemcall_table[NOVA_max_syscalls] = {
+static void *verify_systemcall_table[NOVA_max_syscalls] = {
     [0 ... NOVA_max_syscalls-1] = NULL
 };
 

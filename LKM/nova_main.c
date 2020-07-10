@@ -108,6 +108,7 @@ static ssize_t write(struct file *file, const char *buf, size_t count, loff_t *p
     case NOVA_U2L_SET_PID:
         {
             novaSetPPid(myorder.pid);
+            printk(KERN_ALERT "Added nova filter for ppid %d\n", myorder.pid);
         }
         break;
     default:
