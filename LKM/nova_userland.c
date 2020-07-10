@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
     else if(strcmp(argv[1], "disable") == 0){
         info.order = NOVA_U2L_DISABLE;
     }
-    else if(strcmp(argv[1], "enable") == 0 && argc >= 3){
+    else if(strcmp(argv[1], "setppid") == 0 && argc >= 3){
         info.order = NOVA_U2L_SET_PID;
         info.pid = atoi(argv[2]);
     }
