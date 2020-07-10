@@ -11,12 +11,20 @@ static sys_call_ptr_t orig_systemcall_table[NOVA_max_syscalls] = {
     [0 ... NOVA_max_syscalls-1] = NULL
 };
 
+static void *handle_systemcall_table[NOVA_max_syscalls] = {
+    [0 ... NOVA_max_syscalls-1] = NULL
+};
+
 
 #include "nova_syscall.h"
 
-long novaGetNumFunctionRedirected(void) { return functionRedirected; }
+long novaGetNumFunctionRedirected(void) {
+    return functionRedirected;
+}
 
-long novaGetActiveRedirections(void) { return activeRedirection; }
+long novaGetActiveRedirections(void) {
+    return activeRedirection;
+}
 
 void novaSetPPid(pid_t pid) {
     if (pid <= 2) return;

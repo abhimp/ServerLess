@@ -40,12 +40,15 @@ def printMySyscallDefinition(ret, name, origname, args, argsName):
     printBuf("static asmlinkage", ret)
     printBuf(f"{name}(" + ", ".join(args) + ") {")
     printBuf("\t" f"{ret} ret = -EPERM;")
-    printBuf("\t" f"{ret} (*origCall)(" + ", ".join(args) + f") = (void *) {origname};")
+    printBuf("\t" f"{ret} (*origCall)(" + ", ".join(args) + f") = (void *) orig_systemcall_table[{origname}];")
+    printBuf("\t" f"int (*compareCall)(" + ", ".join(args) + f") = (void *) handle_systemcall_table[{origname}];")
     printBuf("#ifdef NOVA_REDIR_COUNT_DEBUG")
     printBuf("\t" "functionRedirected += 1;")
     printBuf("\t" "activeRedirection += 1;")
     printBuf("#endif")
     printBuf("\t" "if(current->real_parent->pid != nova_ppid) {") #can be enabled only if nov_ppid is not zero
+    printBuf("\t\t" f"ret = origCall(" + ", ".join(argsName) + ");")
+    printBuf("\t" "} else if(!compareCall || compareCall(" + ", ".join(argsName) + ")) {")
     printBuf("\t\t" f"ret = origCall(" + ", ".join(argsName) + ");")
     printBuf("\t}")
     printBuf("#ifdef NOVA_REDIR_COUNT_DEBUG")
@@ -84,7 +87,7 @@ def generateSourceFile(fileName, parsedSysCalls):
         if not bind: continue
         newname = "nova_" + funcName
         sysCallsMap["__NR_"+name] = newname;
-        printMySyscallDefinition(ret, newname, f"orig_systemcall_table[__NR_{name}]", args, argsName)
+        printMySyscallDefinition(ret, newname, f"__NR_{name}", args, argsName)
     definition = endBuf()
 
     startBuf()
