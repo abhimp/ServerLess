@@ -5,7 +5,7 @@ obj-m+=$(modname).o
 
 novalkm-objs := nova_main.o nova_util.o
 
-.PHONY: clean all
+.PHONY: clean all add del enable disable
 
 all: nova_syscall.h nova_controller
 	make -C /lib/modules/$(shell uname -r)/build/ M=$(PWD) modules
@@ -25,8 +25,9 @@ add:
 del:
 	sudo rmmod $(modname)
 
-enable:
-	echo 1 > /proc/hello
+enable: nova_userland
+	./nova_userland enable
 
-disable:
-	python3.7 -c 'open("/proc/hello", "wb").write(b"\0\0\0")'
+
+disable: nova_userland
+	./nova_userland disable
