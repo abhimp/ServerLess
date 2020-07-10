@@ -15,10 +15,10 @@
 
 #include "kern_version_adjustment.h"
 #include "nova_util.h"
+#include "nova_uapi.h"
 
 MODULE_LICENSE("GPL");
 
-#define LKM_INTERFACE_FILE_PROC "hello"
 
 #define CR0_WRITE_UNLOCK(x) \
     do { \
@@ -68,7 +68,6 @@ static void configureSyscallRedirection(void) {
     CR0_WRITE_UNLOCK({
         novaRedirectAllSysCalls(sys_call_table);
     });
-    printk(KERN_ALERT "tainted open: %p\n", sys_call_table[__NR_open]);
     printk(KERN_ALERT "tainted syscall added\n");
 //     write_cr0(read_cr0() | 0x10000); //restore write protection
 }
@@ -91,11 +90,30 @@ static void restorSyscallRedirection(void) {
 }
 
 static ssize_t write(struct file *file, const char *buf, size_t count, loff_t *pos) {
+    struct nova_user2lkm myorder;
     if(!buf || !count) return -EINVAL;
-    if(buf[0]) configureSyscallRedirection();
-    else restorSyscallRedirection();
-    return 1;
-
+    if(count != sizeof(myorder)) return -EINVAL;
+    if(copy_from_user(&myorder, buf, sizeof(myorder))) return -ENOBUFS;
+    switch(myorder.order) {
+    case NOVA_U2L_ENABLE:
+        {
+            configureSyscallRedirection();
+        }
+        break;
+    case NOVA_U2L_DISABLE:
+        {
+            restorSyscallRedirection();
+        }
+        break;
+    case NOVA_U2L_SET_PID:
+        {
+            novaSetPPid(myorder.pid);
+        }
+        break;
+    default:
+        return -EINVAL;
+    }
+    return sizeof(myorder);
 }
 
 static ssize_t read(struct file *file, char *buf, size_t count, loff_t *pos) {

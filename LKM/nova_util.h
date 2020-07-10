@@ -13,7 +13,7 @@ typedef asmlinkage long (*sys_call_ptr_t)(const struct pt_regs *);
 }
 
 #define NOVA_REDIRECT(x, y) { \
-	if(nova_ppid >= 2 && y[x] != nova_syscall_table[x]) {\
+	if(y[x] != nova_syscall_table[x]) {\
 		y[x] = nova_syscall_table[x]; \
 	}\
 }
