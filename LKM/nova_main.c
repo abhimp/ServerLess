@@ -14,7 +14,7 @@
 // #include <linux/string.h>
 
 #include "kern_version_adjustment.h"
-#include "nova_syscall.h"
+#include "nova_util.h"
 
 MODULE_LICENSE("GPL");
 

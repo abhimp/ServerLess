@@ -3,7 +3,7 @@ modname=novalkm
 
 obj-m+=$(modname).o
 
-novalkm-objs := nova_main.o nova_syscall.o
+novalkm-objs := nova_main.o nova_util.o
 
 .PHONY: clean all
 
