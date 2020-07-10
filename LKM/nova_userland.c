@@ -2,11 +2,13 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include "nova_uapi.h"
 
 int main(int argc, char *argv[]) {
     struct nova_user2lkm info;
-    FILE *fp;
+//     FILE *fp;
+    int fd;
     if (argc < 2) {
         printf("use %s [enable, disable, setppid pid]\n", argv[0]);
         return 4;
@@ -26,12 +28,20 @@ int main(int argc, char *argv[]) {
         printf("Nice try\n");
         return 1;
     }
-    fp = fopen("/proc/" LKM_INTERFACE_FILE_PROC, "w");
-    if(!fp) {
+//     fp = fopen("/proc/" LKM_INTERFACE_FILE_PROC, "w");
+//     if(!fp) {
+//         printf("Cannot open interface file\n");
+//         return 3;
+//     }
+//     fwrite(&info, sizeof(info), 1, fp);
+//     fclose(fp);
+
+    fd = open("/proc/" LKM_INTERFACE_FILE_PROC, O_WRONLY);
+    if(!fd) {
         printf("Cannot open interface file\n");
         return 3;
     }
-    fwrite(&info, sizeof(info), 1, fp);
-    fclose(fp);
+    write(fd, &info, sizeof(info));
+    close(fd);
     return 0;
 }
