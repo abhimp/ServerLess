@@ -50,34 +50,14 @@ def printMySyscallDefinition(ret, name, origname, args, argsName):
     printBuf("}")
     printBuf("")
 
-def setupMacros():
+def generateSourceFile(fileName, parsedSysCalls):
+    startBuf()
+    printBuf("#define NOVA_REDIRECT_SOURCE") #need to identify variable definition
     printBuf("")
-    printBuf("typedef asmlinkage long (*sys_call_ptr_t)(const struct pt_regs *);")
-    printBuf("")
-    printBuf("#define NOVA_max_syscalls 512 //it was hard to find a header which define it")
-    printBuf("")
-    printBuf("#define NOVA_STORE_ORIG(x, y) { \\")
-    printBuf("\t" "orig_systemcall_table[x] = y[x]; \\")
-    printBuf("}")
-    printBuf("")
-    printBuf("#define NOVA_REDIRECT(x, y) { \\")
-    printBuf("\t", "y[x] = nova_syscall_table[x]; \\")
-    printBuf("}")
-    printBuf("")
-    printBuf("#define NOVA_RESTORE(x, y) { \\")
-    printBuf("\t", "y[x] = orig_systemcall_table[x]; \\")
-    printBuf("}")
+    printBuf(f"#include \"{fileName}.h\"")
     printBuf("")
     printBuf("static long functionRedirected = 0;")
     printBuf("static long activeRedirection = 0;")
-    printBuf("")
-    printBuf("#define RESET_COUNTER functionRedirected=0")
-
-def defineSystemCalls(parsedSysCalls):
-    startBuf()
-    printBuf("#include <linux/syscalls.h>")
-    printBuf("")
-    setupMacros()
     printBuf("")
     headers = endBuf()
 
@@ -85,6 +65,7 @@ def defineSystemCalls(parsedSysCalls):
     printBuf("static sys_call_ptr_t orig_systemcall_table[NOVA_max_syscalls] = {")
     printBuf("\t[0 ... NOVA_max_syscalls-1] = NULL")
     printBuf("};")
+    printBuf("")
     origSyscallTable = endBuf()
 
     sysCallsMap = {}
@@ -114,20 +95,116 @@ def defineSystemCalls(parsedSysCalls):
     printBuf("};")
     handled = endBuf()
 
+    #exported functions
+    startBuf()
+    printBuf("")
+    printBuf("long novaGetNumFunctionRedirected(void) { return functionRedirected; }")
+    printBuf("long novaGetActiveRedirections(void) { return activeRedirection; }")
+    printBuf("void novaStoreOrigSysCall(int x, sys_call_ptr_t *y) {")
+    printBuf("\t" "NOVA_STORE_ORIG(x, y);")
+    printBuf("}")
+    printBuf("void novaRedirectSysCall(int x, sys_call_ptr_t *y) {")
+    printBuf("\t" "NOVA_REDIRECT(x, y);")
+    printBuf("}")
+    printBuf("void novaRestoreSysCall(int x, sys_call_ptr_t *y) {")
+    printBuf("\t" "NOVA_RESTORE(x, y);")
+    printBuf("}")
+
+    printBuf("void novaStoreAllOrigSysCalls(sys_call_ptr_t *y) {")
+    printBuf("\t" "int i;")
+    printBuf("\t" "int numHandled = sizeof(nova_handled_syscals)/sizeof(nova_handled_syscals[0]);")
+    printBuf("\t" "for(i = 0; i < numHandled; i++) {")
+    printBuf("\t\t" "NOVA_STORE_ORIG(nova_handled_syscals[i], y);")
+    printBuf("\t}")
+    printBuf("}")
+    printBuf("void novaRedirectAllSysCalls(sys_call_ptr_t *y) {")
+    printBuf("\t" "int i;")
+    printBuf("\t" "int numHandled = sizeof(nova_handled_syscals)/sizeof(nova_handled_syscals[0]);")
+    printBuf("\t" "for(i = 0; i < numHandled; i++) {")
+    printBuf("\t\t", "NOVA_REDIRECT(nova_handled_syscals[i], y);")
+    printBuf("\t}")
+    printBuf("}")
+    printBuf("void novaRestoreAllSysCall(sys_call_ptr_t *y) {")
+    printBuf("\t" "int i;")
+    printBuf("\t" "int numHandled = sizeof(nova_handled_syscals)/sizeof(nova_handled_syscals[0]);")
+    printBuf("\t" "for(i = 0; i < numHandled; i++) {")
+    printBuf("\t\t", "NOVA_RESTORE(nova_handled_syscals[i], y);")
+    printBuf("\t}")
+    printBuf("}")
+    exportedFunctions = endBuf()
+
+
+
 #     print(table)
 #     print(len(sysCallsMap))
-    print("#ifndef __NOVA_SYS_CALL_REDIRECT__")
-    print("#define __NOVA_SYS_CALL_REDIRECT__")
-    print(headers)
-    print(origSyscallTable)
-    print(definition)
-    print(table)
-    print(handled)
-    print("#endif")
+    with open(f"{fileName}.c", "w") as fp:
+        print(headers, file=fp)
+        print(origSyscallTable, file=fp)
+        print(definition, file=fp)
+        print(table, file=fp)
+        print(handled, file=fp)
+        print(exportedFunctions, file=fp)
+
+def setupMacros():
+    printBuf("")
+    printBuf("typedef asmlinkage long (*sys_call_ptr_t)(const struct pt_regs *);")
+    printBuf("")
+    printBuf("#define NOVA_max_syscalls 512 //it was hard to find a header which define it")
+    printBuf("")
+    printBuf("#define NOVA_STORE_ORIG(x, y) { \\")
+    printBuf("\t" "orig_systemcall_table[x] = y[x]; \\")
+    printBuf("}")
+    printBuf("")
+    printBuf("#define NOVA_REDIRECT(x, y) { \\")
+    printBuf("\t", "y[x] = nova_syscall_table[x]; \\")
+    printBuf("}")
+    printBuf("")
+    printBuf("#define NOVA_RESTORE(x, y) { \\")
+    printBuf("\t", "y[x] = orig_systemcall_table[x]; \\")
+    printBuf("}")
+    printBuf("")
+    printBuf("#define RESET_COUNTER functionRedirected=0")
 
 
+def generateHeaderFile(fileName):
+    startBuf()
+    printBuf("#include <linux/syscalls.h>")
+    printBuf("")
+    setupMacros()
+    printBuf("")
+    printBuf("#ifndef NOVA_REDIRECT_SOURCE")
+#     printBuf("extern long functionRedirected;")
+#     printBuf("extern long activeRedirection;")
+#     printBuf("extern sys_call_ptr_t orig_systemcall_table[NOVA_max_syscalls];")
+#     printBuf("extern sys_call_ptr_t nova_syscall_table[NOVA_max_syscalls];")
+#     printBuf("extern int nova_handled_syscals[];")
+    printBuf("#endif")
+    printBuf("")
+    headers = endBuf()
 
+    startBuf()
+    printBuf("")
+    printBuf("long novaGetNumFunctionRedirected(void);")
+    printBuf("long novaGetActiveRedirections(void);")
+    printBuf("void novaStoreOrigSysCall(int x, sys_call_ptr_t *y);")
+    printBuf("void novaRedirectSysCall(int x, sys_call_ptr_t *y);")
+    printBuf("void novaRestoreSysCall(int x, sys_call_ptr_t *y);")
 
+    printBuf("void novaStoreAllOrigSysCalls(sys_call_ptr_t *y);")
+    printBuf("void novaRedirectAllSysCalls(sys_call_ptr_t *y);")
+    printBuf("void novaRestoreAllSysCall(sys_call_ptr_t *y);")
+    exportedFunctions = endBuf()
+
+    with open(f"{fileName}.h", "w") as fp:
+        print("#ifndef __NOVA_SYS_CALL_REDIRECT__", file=fp)
+        print("#define __NOVA_SYS_CALL_REDIRECT__", file=fp)
+        print(headers, file=fp)
+        print(exportedFunctions, file=fp)
+        print("#endif", file=fp)
+
+def generateFiles(parsedSysCalls, fileName="nova_syscall"):
+    generateHeaderFile(fileName)
+    generateSourceFile(fileName, parsedSysCalls)
 
 def parseSysCallCsv(fname="syscall.csv"):
     with open(fname) as fp:
@@ -140,12 +217,14 @@ def parseSysCallCsv(fname="syscall.csv"):
             if ret is not None:
                 parsedSysCalls.append(ret)
 
+        return parsedSysCalls
 #         print(len(parsedSysCalls))
-        defineSystemCalls(parsedSysCalls)
+#         defineSystemCalls(parsedSysCalls)
 
 if __name__ == "__main__":
 #     print(sys.argv)
     fname = "syscall.csv"
     if len(sys.argv) > 1:
         fname = sys.argv[1]
-    parseSysCallCsv(fname)
+    parsedSysCalls = parseSysCallCsv(fname)
+    generateFiles(parsedSysCalls)

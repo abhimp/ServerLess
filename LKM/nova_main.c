@@ -55,34 +55,19 @@ static char redirectionConfigured = 0;
 
 static void configureSyscallRedirection(void) {
     char *sym_name = "sys_call_table";
-    void **sys_call_table;
-    int i, numHandled;
+    sys_call_ptr_t *sys_call_table;
 
     if(redirectionConfigured) return;
     redirectionConfigured = 1;
 
-    numHandled = sizeof(nova_handled_syscals)/sizeof(nova_handled_syscals[0]);
-
-    sys_call_table = (void *) kallsyms_lookup_name(sym_name);
+    sys_call_table = (sys_call_ptr_t *) kallsyms_lookup_name(sym_name);
 
     //TODO add a loop
-    for(i = 0; i < numHandled; i++) {
-        NOVA_STORE_ORIG(nova_handled_syscals[i], sys_call_table);
-    }
-//     printk(KERN_ALERT "orig open: %p\n", sys_call_table[__NR_open]);
-//     NOVA_STORE_ORIG(__NR_open, sys_call_table);
-
-//     write_cr0(read_cr0() & (~0x10000)); //remove write protection
-//     disable_write_protection();
+    novaStoreAllOrigSysCalls(sys_call_table);
 
     CR0_WRITE_UNLOCK({
-    //TODO add another loop
-        for(i = 0; i < numHandled; i++) {
-            NOVA_REDIRECT(nova_handled_syscals[i], sys_call_table);
-        }
-//     NOVA_REDIRECT(__NR_open, sys_call_table);
+        novaRedirectAllSysCalls(sys_call_table);
     });
-//     enable_write_protection();
     printk(KERN_ALERT "tainted open: %p\n", sys_call_table[__NR_open]);
     printk(KERN_ALERT "tainted syscall added\n");
 //     write_cr0(read_cr0() | 0x10000); //restore write protection
@@ -90,25 +75,16 @@ static void configureSyscallRedirection(void) {
 
 static void restorSyscallRedirection(void) {
     char *sym_name = "sys_call_table";
-    void **sys_call_table;
-    int i, numHandled;
+    sys_call_ptr_t *sys_call_table;
 
     if(!redirectionConfigured) return;
     redirectionConfigured = 0;
 
-    numHandled = sizeof(nova_handled_syscals)/sizeof(nova_handled_syscals[0]);
+    sys_call_table = (sys_call_ptr_t *) kallsyms_lookup_name(sym_name);
 
-    sys_call_table = (void **) kallsyms_lookup_name(sym_name);
-
-//     write_cr0(read_cr0() & (~0x10000)); //remove write protection
-//     disable_write_protection();
     CR0_WRITE_UNLOCK({
+        novaRestoreAllSysCall(sys_call_table);
 
-    //TODO add another loop
-        for(i = 0; i < numHandled; i++) {
-            NOVA_RESTORE(nova_handled_syscals[i], sys_call_table);
-        }
-//     NOVA_RESTORE(__NR_open, sys_call_table);
     });
 
     printk(KERN_ALERT "tainted syscall removed\n");
@@ -129,7 +105,7 @@ static ssize_t read(struct file *file, char *buf, size_t count, loff_t *pos) {
     if(count < 20 || *pos < 0) return -EINVAL;
     if(*pos >= 20) return 0;
 
-    ret = snprintf(buffer, 32, "%ld %ld\n", functionRedirected, activeRedirection);
+    ret = snprintf(buffer, 32, "%ld %ld\n", novaGetNumFunctionRedirected(), novaGetActiveRedirections());
 
     if (count < ret)
         ret = count;

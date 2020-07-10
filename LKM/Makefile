@@ -3,7 +3,7 @@ modname=novalkm
 
 obj-m+=$(modname).o
 
-novalkm-objs := nova_main.o
+novalkm-objs := nova_main.o nova_syscall.o
 
 .PHONY: clean all
 
@@ -13,7 +13,7 @@ clean:
 	make -C /lib/modules/$(shell uname -r)/build/ M=$(PWD) clean
 
 nova_syscall.h: parseCSV.py syscall.csv
-	python3.7 parseCSV.py syscall.csv > nova_syscall.h
+	python3.7 parseCSV.py syscall.csv
 
 add:
 	sudo insmod $(modname).ko
