@@ -39,13 +39,13 @@ def printMySyscallDefinition(ret, name, origname, args, argsName):
     printBuf("//"+"="*30)
     printBuf("static asmlinkage", ret)
     printBuf(f"{name}(" + ", ".join(args) + ") {")
-    printBuf("\t" f"{ret} ret;")
+    printBuf("\t" f"{ret} ret = -EPERM;")
     printBuf("\t" f"{ret} (*origCall)(" + ", ".join(args) + f") = (void *) {origname};")
     printBuf("#ifdef NOVA_REDIR_COUNT_DEBUG")
     printBuf("\t" "functionRedirected += 1;")
     printBuf("\t" "activeRedirection += 1;")
     printBuf("#endif")
-    printBuf("\t" "if(current->real_parent->pid == nova_ppid) {") #can be enabled only if nov_ppid is not zero
+    printBuf("\t" "if(current->real_parent->pid != nova_ppid) {") #can be enabled only if nov_ppid is not zero
     printBuf("\t\t" f"ret = origCall(" + ", ".join(argsName) + ");")
     printBuf("\t}")
     printBuf("#ifdef NOVA_REDIR_COUNT_DEBUG")
