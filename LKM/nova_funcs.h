@@ -9,6 +9,7 @@
  * All the functions recv same number of argument as the system call. verification macros are expected to be return 0 or 1 only.
  */
 
+#define NOVA_BASE_VERIFY() current->real_parent->pid != nova_ppid
 
 static int verify_open(const char __user *filename, int flags, umode_t mode) {
     printk(KERN_WARNING "ISOLATES:open, %s, %d, %d, %d, %d, %d\n", current->comm, current->pid, current->cred->uid.val, current->parent->pid, current->group_leader->pid, current->tgid);
