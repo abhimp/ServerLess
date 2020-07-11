@@ -11,14 +11,19 @@
 
 #define NOVA_BASE_VERIFY(_) current->real_parent->pid != nova_ppid
 
-static int verify_open(const char __user *filename, int flags, umode_t mode) {
-//     printk(KERN_WARNING "serverless: open, %s, %d, %d, %d, %d, %d\n", current->comm, current->pid, current->cred->uid.val, current->parent->pid, current->group_leader->pid, current->tgid);
+// static int verify_open(const char __user *filename, int flags, umode_t mode) {
+//     return strcmp(current->comm, current->parent->comm) == 0;
+// }
+// #define NOVA_HANDLED_VERIFY_open verify_open
+
+static int custome_verify_common(const char *syscall, int syscallnum) {
+    printk(KERN_WARNING "syscall: %s, comm: %s, pid: %d, ppid: %d, glpid: %d, tgid: %d\n", syscall, current->comm, current->pid, current->parent->pid, current->group_leader->pid, current->tgid);
     return strcmp(current->comm, current->parent->comm) == 0;
-//     return 0;
 }
-#define NOVA_HANDLED_VERIFY_open verify_open
+#define NOVA_HANDLED_VERIFY(__x__) \
+    custome_verify_common(#__x__, __NR_ ## __x__)
 
-#define NOVA_HANDLED_VERIFY(_) (strcmp(current->comm, current->parent->comm) == 0)
+// #define NOVA_HANDLED_VERIFY(_) (strcmp(current->comm, current->parent->comm) == 0)
 
-#define NOVA_POST_PROC(__x__) \
-    printk(KERN_WARNING "serverless: %s, %s, %d, %d, %d, %d, %d\n", #__x__,  current->comm, current->pid, current->cred->uid.val, current->parent->pid, current->group_leader->pid, current->tgid)
+// #define NOVA_POST_PROC(__x__)
+//     printk(KERN_WARNING "serverless: %s, %s, %d, %d, %d, %d, %d\n", #__x__,  current->comm, current->pid, current->cred->uid.val, current->parent->pid, current->group_leader->pid, current->tgid)
