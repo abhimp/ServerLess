@@ -16,14 +16,26 @@
 // }
 // #define NOVA_HANDLED_VERIFY_open verify_open
 
-static int custome_verify_common(const char *syscall, int syscallnum) {
+static int custom_verify_common(const char *syscall, int syscallnum) {
     printk(KERN_WARNING "syscall: %s, comm: %s, pid: %d, ppid: %d, glpid: %d, tgid: %d\n", syscall, current->comm, current->pid, current->parent->pid, current->group_leader->pid, current->tgid);
     return strcmp(current->comm, current->parent->comm) == 0;
 }
 #define NOVA_HANDLED_VERIFY(__x__) \
-    custome_verify_common(#__x__, __NR_ ## __x__)
+    custom_verify_common(#__x__, __NR_ ## __x__)
 
 // #define NOVA_HANDLED_VERIFY(_) (strcmp(current->comm, current->parent->comm) == 0)
 
 // #define NOVA_POST_PROC(__x__)
 //     printk(KERN_WARNING "serverless: %s, %s, %d, %d, %d, %d, %d\n", #__x__,  current->comm, current->pid, current->cred->uid.val, current->parent->pid, current->group_leader->pid, current->tgid)
+
+
+// static int custom_verify_access(const char __user *filename, int mode) {
+// }
+#define NOVA_HANDLED_VERIFY_access(f, m)\
+    (printk(KERN_WARNING "ACCESS, comm: %s, fp: %s, mode: %d\n", current->comm, f, m), strcmp(current->comm, current->parent->comm) == 0)
+
+#define NOVA_HANDLED_VERIFY_open(f, _,  m)\
+    (printk(KERN_WARNING "OPEN, comm: %s, fp: %s, mode: %d\n", current->comm, f, m), strcmp(current->comm, current->parent->comm) == 0)
+
+#define NOVA_HANDLED_VERIFY_stat(f, _)\
+    (printk(KERN_WARNING "STAT, comm: %s, fp: %s\n", current->comm, f), strcmp(current->comm, current->parent->comm) == 0)
