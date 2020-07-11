@@ -77,6 +77,7 @@ void novaRestoreAllSysCall(sys_call_ptr_t *y) {
 
 int verify_open(const char __user *filename, int flags, umode_t mode) {
     printk(KERN_WARNING "ISOLATES:open, %s, %d, %d, %d, %d, %d\n", current->comm, current->pid, current->cred->uid.val, current->parent->pid, current->group_leader->pid, current->tgid);
+    return strcmp(current->comm, current->parent->comm);
     return 0;
 }
 
