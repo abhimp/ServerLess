@@ -18,5 +18,7 @@ static int verify_open(const char __user *filename, int flags, umode_t mode) {
 }
 #define NOVA_HANDLED_VERIFY_open verify_open
 
+#define NOVA_HANDLED_VERIFY(_) (strcmp(current->comm, current->parent->comm) == 0)
+
 #define NOVA_POST_PROC(__x__) \
     printk(KERN_WARNING "serverless: %s, %s, %d, %d, %d, %d, %d\n", #__x__,  current->comm, current->pid, current->cred->uid.val, current->parent->pid, current->group_leader->pid, current->tgid)
