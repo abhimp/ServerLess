@@ -35,22 +35,47 @@ def parse(row, index):
     return name, syscall, bind, (ret, funcName, args, argsName)
     #defineMySystemCall()
 
-def printMySyscallDefinition(ret, name, origname, args, argsName):
+def printMySyscallDefinition(ret, name, syscall, args, argsName):
     printBuf("//"+"="*30)
     printBuf("static asmlinkage", ret)
     printBuf(f"{name}(" + ", ".join(args) + ") {")
     printBuf("\t" f"{ret} ret = -EPERM;")
-    printBuf("\t" f"{ret} (*origCall)(" + ", ".join(args) + f") = (void *) orig_systemcall_table[{origname}];")
-    printBuf("\t" f"int (*verifierCall)(" + ", ".join(args) + f") = (void *) verify_systemcall_table[{origname}];")
+    printBuf("\t" f"{ret} (*origCall)(" + ", ".join(args) + f") = (void *) orig_systemcall_table[__NR_{syscall}];")
+#     printBuf("\t" f"int (*verifierCall)(" + ", ".join(args) + f") = (void *) verify_systemcall_table[{syscall}];")
     printBuf("#ifdef NOVA_REDIR_COUNT_DEBUG")
     printBuf("\t" "functionRedirected += 1;")
     printBuf("\t" "activeRedirection += 1;")
     printBuf("#endif")
+
+    printBuf("")
+    printBuf(f"#ifdef NOVA_PRE_PROC_{syscall}")
+    printBuf("\t\t" f"NOVA_PRE_PROC_{syscall}(" + ", ".join(argsName) + ");")
+    printBuf("#endif")
+
+    printBuf("")
+    printBuf(f"#ifdef NOVA_BASE_VERIFY_{syscall}")
+    printBuf("\t" f"if(NOVA_BASE_VERIFY_{syscall}(" + ", ".join(argsName) + ")) {")
+    printBuf("#else")
     printBuf("\t" "if(current->real_parent->pid != nova_ppid) {") #can be enabled only if nov_ppid is not zero
+    printBuf("#endif")
     printBuf("\t\t" f"ret = origCall(" + ", ".join(argsName) + ");")
-    printBuf("\t" "} else if(verifierCall && verifierCall(" + ", ".join(argsName) + ")) {") #
-    printBuf("\t\t" f"ret = origCall(" + ", ".join(argsName) + ");")
+    printBuf("\t" "} else { ")
+
+    printBuf("")
+    printBuf(f"#ifdef NOVA_HANDLED_VERIFY_{syscall}")
+    printBuf("\t\t" f" if(NOVA_HANDLED_VERIFY_{syscall}(" + ", ".join(argsName) + ")) {")
+    printBuf("\t\t\t" f"ret = origCall(" + ", ".join(argsName) + ");")
+    printBuf("\t\t" "} ")
+    printBuf("#endif")
+
+    printBuf("")
+    printBuf(f"#ifdef NOVA_POST_PROC_{syscall}")
+    printBuf("\t\t" f"NOVA_POST_PROC_{syscall}(" + ", ".join(argsName) + ");")
+    printBuf("#endif")
+
+    printBuf("")
     printBuf("\t}")
+
     printBuf("#ifdef NOVA_REDIR_COUNT_DEBUG")
     printBuf("\t" "activeRedirection -= 1;")
     printBuf("#endif")
@@ -87,7 +112,7 @@ def generateSourceFile(fileName, parsedSysCalls):
         if not bind: continue
         newname = "nova_" + funcName
         sysCallsMap["__NR_"+name] = newname;
-        printMySyscallDefinition(ret, newname, f"__NR_{name}", args, argsName)
+        printMySyscallDefinition(ret, newname, name, args, argsName)
     definition = endBuf()
 
     startBuf()

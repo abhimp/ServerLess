@@ -11,14 +11,12 @@ static sys_call_ptr_t orig_systemcall_table[NOVA_max_syscalls] = {
     [0 ... NOVA_max_syscalls-1] = NULL
 };
 
-static void *verify_systemcall_table[NOVA_max_syscalls] = {
-    [0 ... NOVA_max_syscalls-1] = NULL
-};
 
 
-//This is no ordinary include. It have to stay here.
-//One should not push it up.
+//These are no ordinary includes. These section have to stay here.
+//One should not push it up or down.
 //==================================================
+#include "nova_funcs.h"
 #include "nova_syscall.h"
 //==================================================
 
@@ -75,12 +73,6 @@ void novaRestoreAllSysCall(sys_call_ptr_t *y) {
     }
 }
 
-int verify_open(const char __user *filename, int flags, umode_t mode) {
-    printk(KERN_WARNING "ISOLATES:open, %s, %d, %d, %d, %d, %d\n", current->comm, current->pid, current->cred->uid.val, current->parent->pid, current->group_leader->pid, current->tgid);
-    return strcmp(current->comm, current->parent->comm) != 0;
-    return 0;
-}
 
 void novaInitVerifier(void) {
-    verify_systemcall_table[__NR_open] = verify_open;
 }
