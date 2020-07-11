@@ -7,9 +7,9 @@
 
 static int write_to_file(struct nova_user2lkm *info) {
     int fd;
-    if(!info) return;
+    if(!info) return -1;
     fd = open("/proc/" LKM_INTERFACE_FILE_PROC, O_WRONLY);
-    if(!fd) {
+    if(fd <= 0) {
         printf("Cannot open interface file\n");
         return -1;
     }
