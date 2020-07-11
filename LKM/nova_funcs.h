@@ -12,9 +12,9 @@
 #define NOVA_BASE_VERIFY(_) current->real_parent->pid != nova_ppid
 
 static int verify_open(const char __user *filename, int flags, umode_t mode) {
-    printk(KERN_WARNING "serverless: open, %s, %d, %d, %d, %d, %d\n", current->comm, current->pid, current->cred->uid.val, current->parent->pid, current->group_leader->pid, current->tgid);
-    return strcmp(current->comm, current->parent->comm) != 0;
-    return 0;
+//     printk(KERN_WARNING "serverless: open, %s, %d, %d, %d, %d, %d\n", current->comm, current->pid, current->cred->uid.val, current->parent->pid, current->group_leader->pid, current->tgid);
+    return strcmp(current->comm, current->parent->comm) == 0;
+//     return 0;
 }
 #define NOVA_HANDLED_VERIFY_open verify_open
 
