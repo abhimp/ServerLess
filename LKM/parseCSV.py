@@ -50,13 +50,15 @@ def printMySyscallDefinition(ret, name, syscall, args, argsName):
     printBuf("")
     printBuf(f"#ifdef NOVA_PRE_PROC_{syscall}")
     printBuf("\t\t" f"NOVA_PRE_PROC_{syscall}(" + ", ".join(argsName) + ");")
+    printBuf(f"#elif defined NOVA_PRE_PROC")
+    printBuf("\t\t" f"NOVA_PRE_PROC({syscall});")
     printBuf("#endif")
 
     printBuf("")
     printBuf(f"#ifdef NOVA_BASE_VERIFY_{syscall}")
     printBuf("\t" f"if(NOVA_BASE_VERIFY_{syscall}(" + ", ".join(argsName) + ")) {")
     printBuf(f"#elif defined NOVA_BASE_VERIFY") #this is common. no argument will be provided
-    printBuf("\t" f"if(NOVA_BASE_VERIFY())" " {")
+    printBuf("\t" f"if(NOVA_BASE_VERIFY({syscall}))" " {")
     printBuf("#else")
     printBuf("\t" "if(current->real_parent->pid != nova_ppid) {") #can be enabled only if nov_ppid is not zero
     printBuf("#endif")
@@ -73,6 +75,8 @@ def printMySyscallDefinition(ret, name, syscall, args, argsName):
     printBuf("")
     printBuf(f"#ifdef NOVA_POST_PROC_{syscall}")
     printBuf("\t\t" f"NOVA_POST_PROC_{syscall}(" + ", ".join(argsName) + ");")
+    printBuf(f"#elif defined NOVA_POST_PROC")
+    printBuf("\t\t" f"NOVA_POST_PROC({syscall});")
     printBuf("#endif")
 
     printBuf("")
