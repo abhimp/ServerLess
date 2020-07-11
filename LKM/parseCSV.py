@@ -2,7 +2,7 @@ import csv
 import re
 import sys
 
-declarationRe = re.compile("(asmlinkage [a-z]+) (sys[_a-z0-9]+)\((.*)\)")
+declarationRe = re.compile("asmlinkage ([a-z]+) (sys[_a-z0-9]+)\((.*)\)")
 
 BUFF = []
 

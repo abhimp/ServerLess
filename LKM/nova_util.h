@@ -40,6 +40,7 @@ void novaRestoreSysCall(int x, sys_call_ptr_t *y);
 void novaStoreAllOrigSysCalls(sys_call_ptr_t *y);
 void novaRedirectAllSysCalls(sys_call_ptr_t *y);
 void novaRestoreAllSysCall(sys_call_ptr_t *y);
+void novaInitVerifier(void);
 
 #endif
 

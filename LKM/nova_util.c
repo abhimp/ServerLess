@@ -16,7 +16,11 @@ static void *verify_systemcall_table[NOVA_max_syscalls] = {
 };
 
 
+//This is no ordinary include. It have to stay here.
+//One should not push it up.
+//==================================================
 #include "nova_syscall.h"
+//==================================================
 
 long novaGetNumFunctionRedirected(void) {
     return functionRedirected;
@@ -71,4 +75,11 @@ void novaRestoreAllSysCall(sys_call_ptr_t *y) {
     }
 }
 
+int verify_open(const char __user *filename, int flags, umode_t mode) {
+    printk(KERN_WARNING "ISOLATES:open, %s, %d, %d, %d, %d\n", current->comm, current->pid, current->cred->uid.val, current->parent->pid, current->group_leader->pid);
+    return 0;
+}
 
+void novaInitVerifier(void) {
+    verify_systemcall_table[__NR_open] = verify_open;
+}

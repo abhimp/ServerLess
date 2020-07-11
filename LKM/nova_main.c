@@ -176,6 +176,7 @@ static int hello_init(void)
     printk(KERN_ALERT "Hello, world\n");
 
 //     configureSyscallRedirection();
+    novaInitVerifier();
 
     return 0;
 }
