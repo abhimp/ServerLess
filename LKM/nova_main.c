@@ -53,11 +53,13 @@ void disable_write_protection(void) {
 
 static char redirectionConfigured = 0;
 
-static void configureSyscallRedirection(void) {
+static int configureSyscallRedirection(void) {
     char *sym_name = "sys_call_table";
     sys_call_ptr_t *sys_call_table;
 
-    if(redirectionConfigured) return;
+    if(novaGetPPid() <= 2) return -ENOENT; // should not have any effect
+
+    if(redirectionConfigured) return -ENOENT;
     redirectionConfigured = 1;
 
     sys_call_table = (sys_call_ptr_t *) kallsyms_lookup_name(sym_name);
@@ -69,7 +71,7 @@ static void configureSyscallRedirection(void) {
         novaRedirectAllSysCalls(sys_call_table);
     });
     printk(KERN_ALERT "tainted syscall added\n");
-//     write_cr0(read_cr0() | 0x10000); //restore write protection
+    return 0;
 }
 
 static void restorSyscallRedirection(void) {

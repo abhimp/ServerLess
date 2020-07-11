@@ -29,11 +29,10 @@ typedef asmlinkage long (*sys_call_ptr_t)(const struct pt_regs *);
 #ifndef NOVA_REDIRECT_SOURCE
 #endif
 
-
-
 long novaGetNumFunctionRedirected(void);
 long novaGetActiveRedirections(void);
 void novaSetPPid(pid_t pid);
+pid_t novaGetPPid(void);
 void novaStoreOrigSysCall(int x, sys_call_ptr_t *y);
 void novaRedirectSysCall(int x, sys_call_ptr_t *y);
 void novaRestoreSysCall(int x, sys_call_ptr_t *y);

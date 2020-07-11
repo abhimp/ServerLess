@@ -33,6 +33,10 @@ void novaSetPPid(pid_t pid) {
     nova_ppid = pid;
 }
 
+pid_t novaGetPPid(void) {
+    return nova_ppid;
+}
+
 void novaStoreOrigSysCall(int x, sys_call_ptr_t *y) {
     NOVA_STORE_ORIG(x, y);
 }
