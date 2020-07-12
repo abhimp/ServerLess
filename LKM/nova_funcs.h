@@ -9,7 +9,7 @@
  * All the functions recv same number of argument as the system call. verification macros are expected to be return 0 or 1 only.
  */
 
-#define NOVA_BASE_VERIFY(_) current->real_parent->pid != nova_ppid
+#define NOVA_BASE_VERIFY(_) (current->real_parent->pid != nova_ppid && current->pid != nova_ppid)
 
 // static int verify_open(const char __user *filename, int flags, umode_t mode) {
 //     return strcmp(current->comm, current->parent->comm) == 0;
@@ -18,7 +18,7 @@
 
 static int custom_verify_common(const char *syscall, int syscallnum) {
     printk(KERN_WARNING "syscall: %s, comm: %s, pid: %d, ppid: %d, glpid: %d, tgid: %d\n", syscall, current->comm, current->pid, current->parent->pid, current->group_leader->pid, current->tgid);
-    return strcmp(current->comm, current->parent->comm) == 0;
+    return strcmp(current->comm, current->parent->comm) == 0 || current->pid == nova_ppid;
 }
 #define NOVA_HANDLED_VERIFY(__x__) \
     custom_verify_common(#__x__, __NR_ ## __x__)
@@ -32,10 +32,10 @@ static int custom_verify_common(const char *syscall, int syscallnum) {
 // static int custom_verify_access(const char __user *filename, int mode) {
 // }
 #define NOVA_HANDLED_VERIFY_access(f, m)\
-    (printk(KERN_WARNING "ACCESS, comm: %s, fp: %s, mode: %d\n", current->comm, f, m), strcmp(current->comm, current->parent->comm) == 0)
+    (printk(KERN_WARNING "ACCESS, comm: %s, fp: %s, mode: %d\n", current->comm, f, m), (current->pid == nova_ppid || strcmp(current->comm, current->parent->comm) == 0))
 
 #define NOVA_HANDLED_VERIFY_open(f, _,  m)\
-    (printk(KERN_WARNING "OPEN, comm: %s, fp: %s, mode: %d\n", current->comm, f, m), strcmp(current->comm, current->parent->comm) == 0)
+    (printk(KERN_WARNING "OPEN, comm: %s, fp: %s, mode: %d\n", current->comm, f, m), (current->pid == nova_ppid || strcmp(current->comm, current->parent->comm) == 0))
 
 #define NOVA_HANDLED_VERIFY_stat(f, _)\
-    (printk(KERN_WARNING "STAT, comm: %s, fp: %s\n", current->comm, f), strcmp(current->comm, current->parent->comm) == 0)
+    (printk(KERN_WARNING "STAT, comm: %s, fp: %s\n", current->comm, f), (current->pid == nova_ppid || strcmp(current->comm, current->parent->comm) == 0))
