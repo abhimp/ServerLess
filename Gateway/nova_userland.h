@@ -33,6 +33,6 @@ int nova_enable() {
 
 int nova_disable() {
     struct nova_user2lkm info;
-    info.order = NOVA_U2L_ENABLE;
+    info.order = NOVA_U2L_DISABLE;
     return write_to_file(&info);
 }
