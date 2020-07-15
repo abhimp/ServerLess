@@ -30,7 +30,7 @@ def parse(row, index):
 
     name = row[1]
     syscall = row[2]
-    bind = row[5]=="TRUE"
+    bind = True #row[5]=="TRUE"
     #print(argsName)
     return name, syscall, bind, (ret, funcName, args, argsName)
     #defineMySystemCall()

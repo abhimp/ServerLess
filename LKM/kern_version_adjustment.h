@@ -16,6 +16,14 @@
 #define __kernel_itimerspec itimerspec
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,2,6)
+#define __kernel_old_itimerval itimerval
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,2,6)
+#define __kernel_old_time_t time_t
+#endif
+
 // # include <asm/ldt.h>
 
 #if defined __i386__ || defined __x86_64__
