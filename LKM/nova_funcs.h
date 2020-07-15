@@ -47,3 +47,6 @@ static int custom_verify_common(const char *syscall, int syscallnum) {
 //unsigned long fn, unsigned long stack, int __user *flags, unsigned long arg, int __user *arg2
 #define NOVA_HANDLED_VERIFY_clone(fn, st, fl, a, a2) \
     (printk(KERN_WARNING "CLONE, comm: %s, fn: %lu, st: %lu, fl: %d, pid: %d, ppid: %d\n", current->comm, fn, st, fl? *fl : 0, current->pid, current->parent->pid), (current->pid == nova_ppid || strcmp(current->comm, current->parent->comm) == 0))
+
+#define NOVA_POST_PROC_clone(fn, st, fl, a, a2) \
+    (printk(KERN_WARNING "CLONE-post, comm: %s, fn: %lu, st: %lu, fl: %d, pid: %d, ppid: %d\n", current->comm, fn, st, fl? *fl : 0, current->pid, current->parent->pid))
