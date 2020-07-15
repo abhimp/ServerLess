@@ -32,10 +32,18 @@ static int custom_verify_common(const char *syscall, int syscallnum) {
 // static int custom_verify_access(const char __user *filename, int mode) {
 // }
 #define NOVA_HANDLED_VERIFY_access(f, m)\
-    (printk(KERN_WARNING "ACCESS, comm: %s, fp: %s, mode: %d\n", current->comm, f, m), (current->pid == nova_ppid || strcmp(current->comm, current->parent->comm) == 0))
+    (printk(KERN_WARNING "ACCESS, comm: %s, fp: %s, mode: %d, pid: %d, ppid: %d\n", current->comm, f, m, current->pid, current->parent->pid), (current->pid == nova_ppid || strcmp(current->comm, current->parent->comm) == 0))
 
 #define NOVA_HANDLED_VERIFY_open(f, _,  m)\
-    (printk(KERN_WARNING "OPEN, comm: %s, fp: %s, mode: %d\n", current->comm, f, m), (current->pid == nova_ppid || strcmp(current->comm, current->parent->comm) == 0))
+    (printk(KERN_WARNING "OPEN, comm: %s, fp: %s, mode: %d, pid: %d, ppid: %d\n", current->comm, f, m, current->pid, current->parent->pid), (current->pid == nova_ppid || strcmp(current->comm, current->parent->comm) == 0))
 
 #define NOVA_HANDLED_VERIFY_stat(f, _)\
-    (printk(KERN_WARNING "STAT, comm: %s, fp: %s\n", current->comm, f), (current->pid == nova_ppid || strcmp(current->comm, current->parent->comm) == 0))
+    (printk(KERN_WARNING "STAT, comm: %s, fp: %s, pid: %d, ppid: %d\n", current->comm, f, current->pid, current->parent->pid), (current->pid == nova_ppid || strcmp(current->comm, current->parent->comm) == 0))
+
+//nova_sys_waitid(int which, pid_t pid, struct siginfo __user *infop, int options, struct rusage __user *ru)
+#define NOVA_HANDLED_VERIFY_waitid(w, p, i, o, r) \
+    (printk(KERN_WARNING "WAITID, comm: %s, which: %d, pida: %d, infop: %p, options: %d, ru: %p, pid: %d, ppid: %d\n", current->comm, w, p, i, o, r, current->pid, current->parent->pid), (current->pid == nova_ppid || strcmp(current->comm, current->parent->comm) == 0))
+
+//unsigned long fn, unsigned long stack, int __user *flags, unsigned long arg, int __user *arg2
+#define NOVA_HANDLED_VERIFY_clone(fn, st, fl, a, a2) \
+    (printk(KERN_WARNING "CLONE, comm: %s, fn: %lu, st: %lu, fl: %d, pid: %d, ppid: %d\n", current->comm, fn, st, fl? *fl : 0, current->pid, current->parent->pid), (current->pid == nova_ppid || strcmp(current->comm, current->parent->comm) == 0))
