@@ -6,6 +6,7 @@ OBJECTS := \
 	nova_gateway.o \
 	nova_httpd.o \
 	nova_http_request_handler.o \
+	nova_httpd_util.o \
 	picohttpparser.o
 
 all: $(OBJECTS)

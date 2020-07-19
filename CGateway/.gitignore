@@ -1,2 +1,6 @@
 nova_gateway
 *.o
+.cproject
+.project
+.settings/
+.pydevproject

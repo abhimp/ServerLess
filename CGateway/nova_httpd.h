@@ -1,26 +1,13 @@
 #ifndef __NOVA_HTTPD_H__
 #define __NOVA_HTTPD_H__
 
-#define EIGHT_KB 8192
-#define MAX_HEADERS 50
-
-#include "picohttpparser.h"
-
-struct _http_request_header_ {
-    int sockfd;
-    char *method, *path;
-    size_t methodLen, pathLen;
-    int version;
-    char *queryString;
-    size_t queryStringLen;
-    struct phr_header headers[MAX_HEADERS];
-    size_t headerLen;
-    char buf[EIGHT_KB]; //maximum header length allowed in apache
-    size_t buflen;
-};
+#include <stdio.h>
 
 
-typedef struct _http_request_header_ nova_request_connect;
+//#include "picohttpparser.h"
+#include "nova_http_status_code.h"
+#include "nova_httpd_util.h"
+
 
 enum nova_route_type {
     NOVA_ROUTE_FILE,
@@ -29,14 +16,33 @@ enum nova_route_type {
     NOVA_ROUTE_FUNC
 };
 
+struct nova_control_socket {
+    enum _epoll_type socktype;
+    int sockfd;
+    enum nova_route_type routeType;
+    pid_t childpid;
+    char *script;
+    char serving;
+    struct nova_control_socket *next;
+};
+
+
 
 typedef void (*nova_route_handler)(const char *path, const char *method, const void *headers);
-void novaHandle(nova_request_connect *conn);
+struct nova_control_socket *novaHandle(nova_request_connect *conn);
 int novaRegisterHandler(char *route, char *method, enum nova_route_type type, char *cdir, nova_route_handler handler);
-char *novaGetHttpRequestHeader(const void *headers, char *name);
-int novaGetHttpRequestHeaderCnt(const void *headers);
-int novaGetHttpRequestHeaderValue(const void *headers, int id, const char **name, const char **val);
+
+void handleControlConnection(struct nova_control_socket *ptr);
+
 
 void novaHttpdServer(char *port);
+
+
+#define CLEAN_UP_ZOMBIES while(1) { \
+            int status; \
+            pid_t childpid = waitpid(0, &status, WNOHANG); \
+            if(childpid <= 0) break; \
+        }
+
 
 #endif

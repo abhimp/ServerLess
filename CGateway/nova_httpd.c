@@ -1,3 +1,10 @@
+/*
+ * nova_httpd_util.c
+ *
+ *  Created on: Jul 16, 2020
+ *      Author: abhijit
+ */
+
 #define _GNU_SOURCE //required for memmem
 #include <stdio.h>
 #include <string.h>
@@ -13,7 +20,10 @@
 #include <assert.h>
 #include <errno.h>
 #include <sys/wait.h>
+#include <sys/epoll.h>
 
+
+#define __NOVA_SERVER_MAIN__
 #include "nova_httpd.h"
 #include "nova_http_request_handler.h"
 
@@ -38,76 +48,12 @@ static void forceClose(int sock) {
     close(sock);
 }
 
-#define readTillEoH(x) readTillDelim(x, "\r\n\r\n", 4)
-#define readTillFirstLine(x) readTillDelim(x, "\r\n", 2)
 
-#define CLEAN_UP_ZOMBIES while(1) { \
-            int status; \
-            pid_t childpid = waitpid(0, &status, WNOHANG); \
-            if(childpid < 0) break; \
-        }
-
-static int readTillDelim(nova_request_connect *conn, const char *delim, int delimLen) {
-    char *bufptr = conn->buf + conn->buflen;
-    int rlen = recv(conn->sockfd, bufptr, EIGHT_KB - conn->buflen, MSG_PEEK);
-    // the idea here is to read upto end of the header and end of header only. Not single byte from the
-    if(rlen <= 0) { //TODO
-        return -1;
-    }
-    char *searchptr = conn->buf + MAX(0, conn->buflen + 1 - delimLen); //just in case part of crlf was in last read
-    char *crlf = memmem(searchptr, (rlen + bufptr - searchptr), delim, delimLen);
-    if(crlf) {
-        rlen = delimLen + crlf - bufptr;
-    }
-    int newRlen = recv(conn->sockfd, bufptr, rlen, 0); //clear up the buffer
-    assert(newRlen == newRlen); //TODO add other handler
-    conn->buflen += rlen;
-
-    if(!crlf && conn->buflen == EIGHT_KB) {
-        return -2;
-    }
-
-    return !!crlf; //return 0 or 1
-}
-
-int readNParseHeaders(nova_request_connect *conn) {
-    size_t prevlen = conn->buflen;
-    while(1) {
-        int findEoH = readTillEoH(conn);
-        if(findEoH == -2) {
-            close(conn->sockfd);
-            conn->sockfd = 0;
-            exit(2);
-        }
-        if(findEoH < 0) { //TODO -2 means overflow
-            forceClose(conn->sockfd);
-            conn->sockfd = 0;
-            continue;
-        }
-        break;
-    }
-    conn->headerLen = MAX_HEADERS;
-    int parsed = phr_parse_headers((const char *)conn->buf + prevlen, conn->buflen - prevlen,
-                            conn->headers, &conn->headerLen, 0);
-    if(parsed < 0) {
-        return -1;
-    }
-
-    int i;
-    for(i = 0; i < conn->headerLen; i++) {
-        int j = conn->headers[i].name - conn->buf;
-        conn->buf[j + conn->headers[i].name_len] = 0;
-        j = conn->headers[i].value - conn->buf;
-        conn->buf[j + conn->headers[i].value_len] = 0;
-    }
-    return 0;
-}
 
 void cleanUpRecvBuf(int sockfd) {
     char *buf[EIGHT_KB];
     recv(sockfd, buf, EIGHT_KB, MSG_DONTWAIT);
 }
-
 
 #if 0
 static void respondFromFork(nova_request_connect *conn) {
@@ -168,114 +114,211 @@ static void respondUsingFork(nova_request_connect *conn) {
 }
 #endif
 
-static int percent_decode(char *buffer, size_t size) {
-    static const char tbl[256] = {
-        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
-         0, 1, 2, 3, 4, 5, 6, 7,  8, 9,-1,-1,-1,-1,-1,-1,
-        -1,10,11,12,13,14,15,-1, -1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
-        -1,10,11,12,13,14,15,-1, -1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1
-    };
-
-    char *in = buffer;
-    char *out = buffer;
-    char c, v1, v2;
-    while(in - buffer < size) {
-        c = *in;
-        if(c=='%' &&
-                (v1 = tbl[(unsigned char) in[1]]) >= 0 &&
-                (v2 = tbl[(unsigned char) in[2]]) >= 0) {
-            c = (v1<<4) | v2;
-            in += 2;
-        }
-        *out = c;
-        out ++;
-        in ++;
+struct nova_control_socket *handleRequest(nova_request_connect *conn) {
+    //need to make it blocking for further processing
+    int flag = fcntl(conn->sockfd, F_GETFL);
+    if (flag >=0 && fcntl(conn->sockfd, F_SETFL, flag & ~O_NONBLOCK) == -1) {
+        perror("NONBLOCKING");
+        exit(1);
     }
-
-    return out - buffer;
-}
-
-void requestHandler(nova_request_connect *conn) {
-    int parsed = phr_parse_request_line((const char *)conn->buf, conn->buflen,
-            (const char **)&conn->method, &conn->methodLen,
-            (const char **)&conn->path, &conn->pathLen,
-            &conn->version, 0);
+    int parsed = phr_parse_request_line((const char*) conn->buf, conn->buflen,
+            (const char**) &conn->method, &conn->methodLen,
+            (const char**) &conn->path, &conn->pathLen, &conn->version, 0);
+    if(parsed != conn->buflen){
+        printf("Assert failed: %d != %ld", parsed, conn->buflen);
+    }
     assert(parsed == conn->buflen);
-    conn->queryString = memchr(conn->path, '?', conn->pathLen);
-    if(conn->queryString) {
-        conn->queryString ++;
-        conn->queryStringLen = conn->path + conn->pathLen - conn->queryString;
-        conn->pathLen = conn->queryString - conn->path;
-    }
-    //TODO perform a url decoding for the path
-    conn->pathLen = percent_decode(conn->path, conn->pathLen);
-    respond(conn);
+    return respond(conn);
 }
 
 //start server
-static int startServer(const char *port)
-{
+static int listenServer(const char *port, int blocking) {
     struct addrinfo hints, *res, *p;
     int listenfd;
 
     // getaddrinfo for host
-    memset (&hints, 0, sizeof(hints));
+    memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
-    if (getaddrinfo( NULL, port, &hints, &res) != 0)
-    {
-        perror ("getaddrinfo() error");
+    if (getaddrinfo( NULL, port, &hints, &res) != 0) {
+        perror("getaddrinfo() error");
         exit(1);
     }
-    // socket and bind
-    for (p = res; p!=NULL; p=p->ai_next)
-    {
+
+    for (p = res; p != NULL; p = p->ai_next) {
         int option = 1;
-        listenfd = socket (p->ai_family, p->ai_socktype, 0);
+        listenfd = socket(p->ai_family, p->ai_socktype, 0);
         setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
-        if (listenfd == -1) continue;
-        if (bind(listenfd, p->ai_addr, p->ai_addrlen) == 0) break;
+        if (listenfd == -1)
+            continue;
+        if (bind(listenfd, p->ai_addr, p->ai_addrlen) == 0)
+            break;
     }
 
-    if (p==NULL)
-    {
-        perror ("socket() or bind()");
+    if (p == NULL) {
+        perror("socket() or bind()");
         exit(1);
     }
 
+//    int flag = FD_CLOEXEC;
     if (fcntl(listenfd, F_SETFD, FD_CLOEXEC) == -1) { //making child process wont have access to it
         perror("fcntl set FD_CLOEXEC");
         exit(1);
     }
+    if(!blocking) {
+        int flag = fcntl(listenfd, F_GETFL);
+        if (flag >=0 && fcntl(listenfd, F_SETFL, flag | O_NONBLOCK) == -1) {
+            perror("NONBLOCKING");
+            exit(1);
+        }
+    }
 
     int option = 1;
-    if(setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option)) < 0){
+    if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option))
+            < 0) {
         perror("setsockopt()");
     }
 
     freeaddrinfo(res);
 
     // listen for incoming connections
-    if ( listen (listenfd, 1000000) != 0 )
-    {
+    if (listen(listenfd, 1000000) != 0) {
         perror("listen() error");
         exit(1);
     }
     return listenfd;
 }
+
+#if 1
+void novaHttpdServer(char *port) {
+#define MAX_EVENTS 100
+    nova_request_connect _connections[MAX_CONNECTIONS],
+            *connPool[MAX_CONNECTIONS];
+    int conPoolLen = 0;
+    struct epoll_event ev, events[MAX_EVENTS];
+    int listen_sock, conn_sock, nfds, epollfd;
+
+    struct sockaddr_in addr;
+    socklen_t addrlen;
+
+    for (; conPoolLen < MAX_CONNECTIONS; conPoolLen++) {
+        connPool[conPoolLen] = &_connections[conPoolLen];
+    }
+
+
+    listen_sock = listenServer(port, 0);
+
+    epollfd = epoll_create1(EPOLL_CLOEXEC);
+    if (epollfd == -1) {
+        perror("epoll_create1");
+        exit(EXIT_FAILURE);
+    }
+
+    ev.events = EPOLLIN;
+    ev.data.fd = listen_sock;
+
+    if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1) {
+        perror("epoll_ctl: listen_sock");
+        exit(EXIT_FAILURE);
+    }
+
+    for (;;) {
+        nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
+        if (nfds == -1) {
+            perror("epoll_wait");
+            exit(EXIT_FAILURE);
+        }
+        int n;
+        for (n = 0; n < nfds; ++n) {
+            if (events[n].data.fd == listen_sock) {
+                conn_sock = accept4(listen_sock, (struct sockaddr*) &addr, &addrlen, SOCK_NONBLOCK | SOCK_CLOEXEC);
+                if (conn_sock == -1) {
+                    perror("accept");
+                    exit(EXIT_FAILURE);
+                }
+                if (conPoolLen <= 0) {
+                    close(conn_sock);
+                    continue;
+                }
+
+                conPoolLen -= 1;
+                nova_request_connect *ptr = connPool[conPoolLen];
+                *ptr = (nova_request_connect ) {
+                            .socktype = NOVA_SOCK_TYPE_REQ,
+                            .sockfd = conn_sock,
+                            .buflen = 0
+                        };
+
+                ev.events = EPOLLIN | EPOLLET;
+                ev.data.fd = conn_sock;
+                ev.data.ptr = ptr;
+//                conPoolLen -= 1;
+//                ev.data.ptr = connPool[conPoolLen];
+
+                if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1) {
+                    perror("epoll_ctl: conn_sock");
+                    exit(EXIT_FAILURE);
+                }
+            } else {
+#define REMOVE_CLOSE_FD(fd) {\
+                                if (epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, NULL) == -1) { \
+                                    perror("epoll_ctl: conn_sock"); \
+                                    exit(EXIT_FAILURE); \
+                                } \
+                                close(fd); \
+                            }
+                nova_request_connect *conn = events[n].data.ptr;
+                if (conn->socktype == NOVA_SOCK_TYPE_REQ) {
+                    int findEoH = novaPeekTillFirstLine(conn);
+                    if (findEoH == -2) {
+                        REMOVE_CLOSE_FD(conn->sockfd);
+                        conn->sockfd = 0;
+                        continue;
+                    }
+                    if (findEoH < 0) { //TODO -2 means overflow
+                        REMOVE_CLOSE_FD(conn->sockfd);
+                        conn->sockfd = 0;
+                        continue;
+                    }
+                    if(findEoH == 0) {
+                        printf("Continuing for more data: %ld\n", conn->buflen);
+                        continue;
+                    }
+
+                    if (epoll_ctl(epollfd, EPOLL_CTL_DEL, conn->sockfd, NULL) == -1) {
+                        perror("epoll_ctl: conn_sock");
+                        exit(EXIT_FAILURE);
+                    }
+
+                    struct nova_control_socket *ret =  handleRequest(conn);
+                    if(ret != NULL) {
+                        int flag = fcntl(ret->sockfd, F_GETFL);
+                        if (flag >=0 && fcntl(conn->sockfd, F_SETFL, flag | O_NONBLOCK) == -1) {
+                            perror("NONBLOCKING");
+                            exit(1);
+                        }
+                        ev.events = EPOLLIN | EPOLLET;
+                        ev.data.fd = ret->sockfd;
+                        ev.data.ptr = ret;
+                        if (epoll_ctl(epollfd, EPOLL_CTL_ADD, ret->sockfd, &ev) == -1) {
+                            perror("epoll_ctl: conn_sock");
+                            exit(EXIT_FAILURE);
+                        }
+                    }
+//                    REMOVE_CLOSE_FD(conn->sockfd);
+                    conn->sockfd = 0;
+                } else if(conn->socktype == NOVA_SOCK_TYPE_CTL) {
+                    struct nova_control_socket *ptr = (struct nova_control_socket *)conn;
+                    handleControlConnection(ptr);
+                }
+            }
+        }
+
+        CLEAN_UP_ZOMBIES;
+    }
+}
+#else
 
 void novaHttpdServer(char *port) {
     struct sockaddr_in clientaddr;
@@ -287,7 +330,7 @@ void novaHttpdServer(char *port) {
 
 	fd_set rfds;
 
-    listenfd = startServer(port);
+    listenfd = listenServer(port, 0);
 
     maxfd = listenfd;
 	while(1){
@@ -312,7 +355,7 @@ void novaHttpdServer(char *port) {
 
         if(FD_ISSET(listenfd, &rfds)) { //accept will be called at the end
             addrlen = sizeof(clientaddr);
-            clientFd = accept (listenfd, (struct sockaddr *) &clientaddr, &addrlen);
+            clientFd = accept4 (listenfd, (struct sockaddr *) &clientaddr, &addrlen, SOCK_CLOEXEC);
             if(clientFd <= 0)
                 continue;
 
@@ -330,7 +373,7 @@ void novaHttpdServer(char *port) {
         for(x = 0; x < MAX_CONNECTIONS; x ++) {
             nova_request_connect *conn = &connections[x];
             if(FD_ISSET(conn->sockfd, &rfds)) {
-                int findEoH = readTillFirstLine(conn);
+                int findEoH = novaPeekTillFirstLine(conn);
                 if(findEoH == -2) {
                     close(conn->sockfd);
                     conn->sockfd = 0;
@@ -342,7 +385,7 @@ void novaHttpdServer(char *port) {
                     continue;
                 }
 
-                requestHandler(conn);
+                handleRequest(conn);
                 close(conn->sockfd);
                 conn->sockfd = 0;
             }
@@ -350,3 +393,4 @@ void novaHttpdServer(char *port) {
         CLEAN_UP_ZOMBIES;
     }
 }
+#endif
