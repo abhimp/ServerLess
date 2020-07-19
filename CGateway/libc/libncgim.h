@@ -9,7 +9,7 @@
 #define LIBC_LIBNCGIM_H_
 
 
-void *ncgiInitServer();
-void ncgiRunForever(void *info, void (*handler)(void));
+void *ncgimInitServer();
+void ncgimRunForever(void *info, void (*handler)(void));
 
 #endif /* LIBC_LIBNCGIM_H_ */

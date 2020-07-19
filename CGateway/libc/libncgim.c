@@ -20,7 +20,7 @@ struct ncgiInfo {
 
 extern char **environ;
 
-static int ncgiStart(){
+static int ncgimStart(){
     int ncgiFD = 4;
     char *ncgi_fd = getenv("NCGI_FD");
     if(ncgi_fd) {
@@ -30,7 +30,7 @@ static int ncgiStart(){
     return ncgiFD;
 }
 
-static int ncgiAccept(int ncgiFd, struct sockaddr *restrict address,
+static int ncgimAccept(int ncgiFd, struct sockaddr *restrict address,
         socklen_t *restrict address_len) {
     int recvFd = 0;
     char retBuf[EIGHT_KB];
@@ -47,16 +47,16 @@ static int ncgiAccept(int ncgiFd, struct sockaddr *restrict address,
 }
 
 
-void *ncgiInitServer() {
+void *ncgimInitServer() {
     struct ncgiInfo *pack = malloc(sizeof(struct ncgiInfo));
-    pack->sockfd = ncgiStart();
+    pack->sockfd = ncgimStart();
 
     return pack;
 }
 
 
 
-static char * (*storeEnv())[2] {
+static char * (*ncgimStoreEnv())[2] {
     int envCnt = 0;
     int totalLen = 0;
     for(; environ[envCnt]; envCnt++) totalLen += strlen(environ[envCnt]) + 1;
@@ -76,7 +76,7 @@ static char * (*storeEnv())[2] {
     return env;
 }
 
-void sendError(nova_httpd_request *conn, int status) {
+static void ncgimSendError(nova_httpd_request *conn, int status) {
 #define HTTP_10 "HTTP/1.0 "
 #define CRLF "\r\n"
 #define PLAIN_TEXT "Content-type: text/plain" CRLF
@@ -102,7 +102,7 @@ void sendError(nova_httpd_request *conn, int status) {
 static int setEnv(int childFd, struct sockaddr const *address, socklen_t address_len, char *(*env)[2]) {
 #define SEND_500_ERROR(x) { \
         perror(x); \
-        sendError(conn, 500); \
+        ncgimSendError(conn, 500); \
     }
 #define ADD2ENV(x, y) { \
     if(setenv(x, y, 1) < 0) { \
@@ -178,7 +178,7 @@ static int setEnv(int childFd, struct sockaddr const *address, socklen_t address
         sprintf(remotePort, "%d", ntohs(((struct sockaddr_in *)&remoteAddr)->sin_port));
         sprintf(localPort, "%d", ntohs(((struct sockaddr_in *)&localAddr)->sin_port));
     } else {
-        sendError(conn, 500);
+        ncgimSendError(conn, 500);
         exit(0);
     }
 
@@ -211,20 +211,20 @@ static int setEnv(int childFd, struct sockaddr const *address, socklen_t address
     return 0;
 }
 
-void ncgiRunForever(void *ptr, void (*handler)(void)) {
-    char *(*env)[2] = storeEnv();
+void ncgimRunForever(void *ptr, void (*handler)(void)) {
+    char *(*env)[2] = ncgimStoreEnv();
     struct sockaddr_storage address;
     socklen_t address_len;
     int childFd;
     fflush(stdout);
-    int stdinfd = dup(STDIN_FILENO);
-    int stdoutfd = dup(STDOUT_FILENO);
+//    int stdinfd = dup(STDIN_FILENO);
+//    int stdoutfd = dup(STDOUT_FILENO);
 
     struct ncgiInfo *info = ptr;
 
     while(1){
         address_len = sizeof(address);
-        childFd = ncgiAccept(info->sockfd, (struct sockaddr *)&address, &address_len);
+        childFd = ncgimAccept(info->sockfd, (struct sockaddr *)&address, &address_len);
         if(childFd < 0){
             exit(1);
         }

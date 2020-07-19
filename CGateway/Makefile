@@ -9,19 +9,25 @@ OBJECTS := \
 	nova_httpd_util.o \
 	picohttpparser.o
 
+NCGI_LIBC_OBJ := \
+	picohttpparser.o \
+	nova_httpd_util.o \
+	libc/libncgim.o \
+	libc/example_m.o
+
 all: nova_gateway libc/libc_example
 
-libc/libc_example: picohttpparser.o nova_httpd_util.o libc/libncgim.o libc/example_m.o
-	gcc -Wall $(DEBUG) -o $@ $^
+libc/libc_example: $(NCGI_LIBC_OBJ)
+	@gcc -Wall $(DEBUG) -o $@ $^
 
 nova_gateway: $(OBJECTS)
-	gcc -Wall $(DEBUG) -o $@ $^
+	@gcc -Wall $(DEBUG) -o $@ $^
 
 clean: clean-libc
 	@rm -rf nova_gateway $(OBJECTS)
 	
 clean-libc:
-	@rm -rf libc/libc_example libc/libncgi.o libc/example.o
+	@rm -rf libc/libc_example $(NCGI_LIBC_OBJ)
 
 %.o: %.c
 	@echo "cc $<"

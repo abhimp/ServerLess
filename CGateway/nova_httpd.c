@@ -29,85 +29,10 @@
 
 #define MAX(x, y) (x > y ? x : y)
 
-// static void respondUsingFork(nova_request_connect *conn);
-// static void respondFromFork(nova_request_connect *conn);
 
 #define respond(x) novaHandle(x)
 
 #define MAX_CONNECTIONS 512
-
-static void cleanClose(int sock) {
-    char buf[EIGHT_KB]; //header should not be bigger than this.
-    recv(sock, buf, EIGHT_KB, MSG_DONTWAIT);
-    shutdown(sock, SHUT_RDWR);
-    close(sock);
-}
-
-static void forceClose(int sock) {
-    shutdown(sock, SHUT_RDWR);
-    close(sock);
-}
-
-
-
-#if 0
-static void respondFromFork(nova_httpd_request *conn) {
-    size_t prevlen = conn->buflen;
-    while(1) {
-        int findEoH = readTillEoH(conn);
-        if(findEoH == -2) {
-            close(conn->sockfd);
-            conn->sockfd = 0;
-            exit(2);
-        }
-        if(findEoH < 0) { //TODO -2 means overflow
-            forceClose(conn->sockfd);
-            conn->sockfd = 0;
-            continue;
-        }
-        break;
-    }
-    conn->headerLen = MAX_HEADERS;
-    int parsed = phr_parse_headers((const char *)conn->buf + prevlen, conn->buflen - prevlen,
-                            conn->headers, &conn->headerLen, 0);
-    if(parsed <= 0) {
-        fprintf(stderr, "Error in parser: %d\n", parsed);
-        printf("%.*s\n", (int)conn->buflen, conn->buf);
-        return;
-    }
-    dup2(conn->sockfd, STDOUT_FILENO);
-    close(conn->sockfd);
-
-    printf("HTTP/1.1 200 OK\r\n\r\n");
-    printf("Hello! There");
-    printf("The request is: %d\n", parsed);
-    printf("%.*s %.*s HTTP/%d\n", (int)conn->methodLen, conn->method, (int)conn->pathLen, conn->path, conn->version);
-    printf("QueryString: %.*s\n", (int)conn->queryStringLen, conn->queryString);
-    int i;
-    for(i = 0; i < conn->headerLen; i++) {
-        printf("%.*s: %.*s\n", (int)conn->headers[i].name_len, conn->headers[i].name, (int)conn->headers[i].value_len, conn->headers[i].value);
-    }
-
-    fflush(stdout);
-    shutdown(STDOUT_FILENO, SHUT_WR);
-    close(STDOUT_FILENO);
-}
-
-static void respondUsingFork(nova_httpd_request *conn) {
-    pid_t pid;
-    pid = fork();
-    if(pid < 0) {
-        perror("fork");
-        exit(0);
-    }
-
-    if(pid) { // parent
-        return;
-    }
-    respondFromFork(conn);
-    exit(0);
-}
-#endif
 
 struct nova_control_socket *handleRequest(nova_httpd_request *conn) {
     //need to make it blocking for further processing

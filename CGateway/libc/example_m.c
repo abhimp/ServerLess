@@ -21,6 +21,5 @@ void handle(void) {
 }
 
 int main() {
-    void *info = ncgiInitServer();
-    ncgiRunForever(info, handle);
+    ncgimRunForever(handle);
 }
