@@ -42,17 +42,17 @@ struct nova_handler_enrty *handlerRegistry = NULL;
 int handleRegistryCnt = 0;
 int handleRegistryCapa = 0;
 
-static void sendError(nova_request_connect *conn, int status) {
+void sendError(nova_httpd_request *conn, int status) {
 //     nova_request_connect *conn = DEREFENCE_STRUCT(nova_request_connect, headers, headers);
-    novaStartResponseHeader(conn->headers, status);
-    novaEndResponseHeader(conn->headers);
+//    novaStartResponseHeader(conn->headers, status);
+//    novaEndResponseHeader(conn->headers);
 //     char buf[100];
 //     sprintf(buf, "HTTP/1.0 %s\r\n\r\n", HTTP_RESPONSE_STATUS[num]);
 //     send(sockfd, buf, strlen(buf), 0);
     cleanUpRecvBuf(conn->sockfd);
 }
 
-static struct nova_control_socket *handleWithFunctionHandler(struct nova_handler_enrty *entry, nova_request_connect *conn) {
+static struct nova_control_socket *handleWithFunctionHandler(struct nova_handler_enrty *entry, nova_httpd_request *conn) {
     pid_t pid;
     pid = fork();
     if(pid < 0) {
@@ -71,7 +71,7 @@ static struct nova_control_socket *handleWithFunctionHandler(struct nova_handler
     close(conn->sockfd);
     printf("HTTP/1.0 200 OK\r\n");
 
-    entry->handler(conn->path, conn->method, &conn->headers);
+    entry->handler(conn->path, conn->method, conn);
 
     fflush(stdout);
     shutdown(STDOUT_FILENO, SHUT_WR);
@@ -87,7 +87,7 @@ static struct nova_control_socket *handleWithFunctionHandler(struct nova_handler
     sendError(conn, 500); \
     exit(0); \
 }
-static void setupEnvironmentVariable(nova_request_connect *conn, char ***env) {
+static void setupEnvironmentVariable(nova_httpd_request *conn, char ***env) {
 #define ADD2ENV(x, y) { \
     if(envCapa - envLen < 2) { \
         if(!(*env = realloc(*env, (envCapa + 16)*sizeof(char *)))) \
@@ -197,7 +197,7 @@ static void setupEnvironmentVariable(nova_request_connect *conn, char ***env) {
 #undef ADD2ENV
 }
 
-static void executeCgi(struct nova_handler_enrty *entry, nova_request_connect *conn) {
+static void executeCgi(struct nova_handler_enrty *entry, nova_httpd_request *conn) {
     char *cgiPath = conn->path + entry->routelen;
 
 //     char *const (*env)[2]; // a pointer to array of length 2 of pointer to const char
@@ -251,7 +251,7 @@ static void executeCgi(struct nova_handler_enrty *entry, nova_request_connect *c
 //     free(stack);
 // }
 
-static void setupAndRunCgi(struct nova_handler_enrty *entry, nova_request_connect *conn) {
+static void setupAndRunCgi(struct nova_handler_enrty *entry, nova_httpd_request *conn) {
     char *cgiPath = conn->path + entry->routelen;
     char cwd[200];
     if(!getcwd(cwd, sizeof(cwd))) {
@@ -287,7 +287,7 @@ static void setupAndRunCgi(struct nova_handler_enrty *entry, nova_request_connec
     exit(0);
 }
 
-static struct nova_control_socket *handleWithCGI(struct nova_handler_enrty *entry, nova_request_connect *conn) {
+static struct nova_control_socket *handleWithCGI(struct nova_handler_enrty *entry, nova_httpd_request *conn) {
     //add option to set close on exec
     pid_t pid = fork();
     if(pid < 0) {
@@ -307,6 +307,24 @@ struct _nova_channel {
     int numPending;
     char *scriptName;
 };
+
+void addition(struct nova_control_socket **head, struct nova_control_socket *ele) {
+    assert(head && ele);
+    ele->prev = head;
+    ele->next = *head;
+    if(*head)
+        (*head)->prev = &ele->next;
+    *head = ele;
+}
+
+void deletion(struct nova_control_socket *ele) {
+    assert(ele);
+    *ele->prev = ele->next;
+    if(ele->next)
+        ele->next->prev = ele->prev;
+    ele->next = NULL;
+    ele->prev = NULL;
+}
 
 static int novaChannelComp(const struct _nova_channel *ptr1, const struct _nova_channel *ptr2) {
     if(!ptr1)
@@ -329,7 +347,7 @@ static struct nova_control_socket *ncgiGetWorker(struct _nova_channel *chan) {
 }
 
 
-static struct nova_control_socket *ncgiCreateWorker(struct nova_handler_enrty *entry, nova_request_connect *conn) {
+static struct nova_control_socket *ncgiCreateWorker(struct nova_handler_enrty *entry, nova_httpd_request *conn) {
 #define SEND_500_ERROR(st) { \
         perror(st); \
         sendError(conn, 500); \
@@ -367,7 +385,7 @@ static struct nova_control_socket *ncgiCreateWorker(struct nova_handler_enrty *e
             .sockfd = localfd,
             .childpid = pid,
             .serving = 0,
-            .routeType = NOVA_ROUTE_NCGI
+            .routeType = NOVA_ROUTE_NCGIM
         };
         return worker;
     }
@@ -429,7 +447,7 @@ static struct nova_control_socket *ncgiCreateWorker(struct nova_handler_enrty *e
 }
 
 struct nova_map *novaNCGIMap = NULL;
-static struct nova_control_socket *handleWithNCGI(struct nova_handler_enrty *entry, nova_request_connect *conn) {
+static struct nova_control_socket *handleWithNCGI(struct nova_handler_enrty *entry, nova_httpd_request *conn) {
     if(!novaNCGIMap) {
         novaNCGIMap = novaInitMap((int (*)(const void *, const void *))novaChannelComp);
     }
@@ -453,22 +471,33 @@ static struct nova_control_socket *handleWithNCGI(struct nova_handler_enrty *ent
         worker = ncgiCreateWorker(entry, conn);
         ret = worker;
         worker->script = channel->scriptName;
-        worker->next = channel->working;
+        addition(&channel->working, worker);
         channel->numWorking ++;
     }
+//    printf("available workers:");
+//    for(struct nova_control_socket *tmp = channel->worker; tmp; tmp=tmp->next) printf(" %d", tmp->childpid);
+//    for(struct nova_control_socket *tmp = channel->working; tmp; tmp=tmp->next) printf(" %d", tmp->childpid);
+//    printf("\n");
 
     // SETUP is complete. send the fd and close it
     int sent = novaSendFd(worker->sockfd, conn->sockfd, conn->buf, conn->buflen);
 
     if(sent <= 0) { //socket closed, possibly the process
         //TODO cleanup
+        kill(worker->childpid, SIGTERM); //just a precaution
+        close(worker->sockfd);
         ret = NULL;
-    }
+        deletion(worker);
+        channel->numWorking --;
+        printf("previously assigned worker:%d seems dead\n", worker->childpid);
 
+        return handleWithNCGI(entry, conn);
+    }
+    printf("Worker assinged: %d\n", worker->childpid);
     return ret;
 }
 
-void handleNCGIControl(struct nova_control_socket *ptr) {
+static void handleNCGIControl(struct nova_control_socket *ptr) {
     char buf[100];
     char removeOnly = 0;
     if(recv(ptr->sockfd, buf, 100, 0) <= 0) {
@@ -483,32 +512,29 @@ void handleNCGIControl(struct nova_control_socket *ptr) {
     };
     channel = (struct _nova_channel *)novaSearch(novaNCGIMap, &key);
     assert(channel);
-    struct nova_control_socket **tmp;
 
-    for(tmp = &channel->working; *tmp; tmp = &(*tmp)->next) {
-        if(*tmp != ptr)
-            continue;
-        *tmp = ptr->next;
-        ptr->next = NULL;
-        break;
-    }
+    deletion(ptr);
     channel->numWorking --;
+
+    printf("Worker reported back: %d\n", ptr->childpid);
 
     if(removeOnly) {
         free(ptr);
         return;
     }
-    ptr->next = channel->worker;
-    channel->worker = ptr;
+    addition(&channel->worker, ptr);
+    channel->numPending ++;
+//    ptr->next = channel->worker;
+//    channel->worker = ptr;
 }
 
-static struct nova_control_socket *handleWithHandler(struct nova_handler_enrty *entry, nova_request_connect *conn) {
+static struct nova_control_socket *handleWithHandler(struct nova_handler_enrty *entry, nova_httpd_request *conn) {
     switch(entry->type) {
         case NOVA_ROUTE_FILE:
             return NULL;
-        case NOVA_ROUTE_CGI:
+        case NOVA_ROUTE_NCGIS:
             return handleWithCGI(entry, conn); //need more effort needed or our library need to be added
-        case NOVA_ROUTE_NCGI:
+        case NOVA_ROUTE_NCGIM:
             return handleWithNCGI(entry, conn);
         case NOVA_ROUTE_FUNC:
             return handleWithFunctionHandler(entry, conn);
@@ -517,7 +543,7 @@ static struct nova_control_socket *handleWithHandler(struct nova_handler_enrty *
     return NULL;
 }
 
-struct nova_control_socket *novaHandle(nova_request_connect *conn) {
+struct nova_control_socket *novaHandle(nova_httpd_request *conn) {
 //    char altBuf[EIGHT_KB]; //this this stack memory.
 
 //==============================================================
@@ -568,9 +594,9 @@ void handleControlConnection(struct nova_control_socket *ptr) {
     switch(ptr->routeType) {
         case NOVA_ROUTE_FILE:
             return;
-        case NOVA_ROUTE_CGI:
+        case NOVA_ROUTE_NCGIS:
             return; //need more effort needed or our library need to be added
-        case NOVA_ROUTE_NCGI:
+        case NOVA_ROUTE_NCGIM:
             handleNCGIControl(ptr);
             return;
         case NOVA_ROUTE_FUNC:

@@ -50,13 +50,8 @@ static void forceClose(int sock) {
 
 
 
-void cleanUpRecvBuf(int sockfd) {
-    char *buf[EIGHT_KB];
-    recv(sockfd, buf, EIGHT_KB, MSG_DONTWAIT);
-}
-
 #if 0
-static void respondFromFork(nova_request_connect *conn) {
+static void respondFromFork(nova_httpd_request *conn) {
     size_t prevlen = conn->buflen;
     while(1) {
         int findEoH = readTillEoH(conn);
@@ -98,7 +93,7 @@ static void respondFromFork(nova_request_connect *conn) {
     close(STDOUT_FILENO);
 }
 
-static void respondUsingFork(nova_request_connect *conn) {
+static void respondUsingFork(nova_httpd_request *conn) {
     pid_t pid;
     pid = fork();
     if(pid < 0) {
@@ -114,7 +109,7 @@ static void respondUsingFork(nova_request_connect *conn) {
 }
 #endif
 
-struct nova_control_socket *handleRequest(nova_request_connect *conn) {
+struct nova_control_socket *handleRequest(nova_httpd_request *conn) {
     //need to make it blocking for further processing
     int flag = fcntl(conn->sockfd, F_GETFL);
     if (flag >=0 && fcntl(conn->sockfd, F_SETFL, flag & ~O_NONBLOCK) == -1) {
@@ -193,7 +188,18 @@ static int listenServer(const char *port, int blocking) {
 #if 1
 void novaHttpdServer(char *port) {
 #define MAX_EVENTS 100
-    nova_request_connect _connections[MAX_CONNECTIONS],
+#define STR1(x, y) # y
+#define STR(X) STR1("", X)
+#define REMOVE_CLOSE_FD(fd) {\
+                                if (epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, NULL) == -1) { \
+                                    perror("epoll_ctl: " # fd " at " STR(__LINE__)); \
+                                    fprintf(stderr, #fd " = %d, errno= %d\n", fd, errno); \
+                                    exit(EXIT_FAILURE); \
+                                } \
+                                close(fd); \
+                            }
+
+    nova_httpd_request _connections[MAX_CONNECTIONS],
             *connPool[MAX_CONNECTIONS];
     int conPoolLen = 0;
     struct epoll_event ev, events[MAX_EVENTS];
@@ -243,8 +249,8 @@ void novaHttpdServer(char *port) {
                 }
 
                 conPoolLen -= 1;
-                nova_request_connect *ptr = connPool[conPoolLen];
-                *ptr = (nova_request_connect ) {
+                nova_httpd_request *ptr = connPool[conPoolLen];
+                *ptr = (nova_httpd_request ) {
                             .socktype = NOVA_SOCK_TYPE_REQ,
                             .sockfd = conn_sock,
                             .buflen = 0
@@ -261,14 +267,8 @@ void novaHttpdServer(char *port) {
                     exit(EXIT_FAILURE);
                 }
             } else {
-#define REMOVE_CLOSE_FD(fd) {\
-                                if (epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, NULL) == -1) { \
-                                    perror("epoll_ctl: conn_sock"); \
-                                    exit(EXIT_FAILURE); \
-                                } \
-                                close(fd); \
-                            }
-                nova_request_connect *conn = events[n].data.ptr;
+
+                nova_httpd_request *conn = events[n].data.ptr;
                 if (conn->socktype == NOVA_SOCK_TYPE_REQ) {
                     int findEoH = novaPeekTillFirstLine(conn);
                     if (findEoH == -2) {
@@ -306,8 +306,13 @@ void novaHttpdServer(char *port) {
                             exit(EXIT_FAILURE);
                         }
                     }
+                    fprintf(stderr, "closing fd for path: %s\n", conn->path);
 //                    REMOVE_CLOSE_FD(conn->sockfd);
+                    close(conn->sockfd);
                     conn->sockfd = 0;
+                    connPool[conPoolLen] = conn;
+                    conPoolLen += 1;
+
                 } else if(conn->socktype == NOVA_SOCK_TYPE_CTL) {
                     struct nova_control_socket *ptr = (struct nova_control_socket *)conn;
                     handleControlConnection(ptr);
@@ -325,7 +330,7 @@ void novaHttpdServer(char *port) {
     socklen_t addrlen;
     int clientFd;
     int maxfd = 0;
-    nova_request_connect connections[MAX_CONNECTIONS]; //TODO optimize
+    nova_httpd_request connections[MAX_CONNECTIONS]; //TODO optimize
     int listenfd;
 
 	fd_set rfds;
@@ -364,14 +369,14 @@ void novaHttpdServer(char *port) {
                 continue;
             }
 
-            connections[clientFd] = (nova_request_connect) {
+            connections[clientFd] = (nova_httpd_request) {
                                        .sockfd = clientFd,
                                        .buflen = 0
                                 };
         }
 
         for(x = 0; x < MAX_CONNECTIONS; x ++) {
-            nova_request_connect *conn = &connections[x];
+            nova_httpd_request *conn = &connections[x];
             if(FD_ISSET(conn->sockfd, &rfds)) {
                 int findEoH = novaPeekTillFirstLine(conn);
                 if(findEoH == -2) {

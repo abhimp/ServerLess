@@ -9,36 +9,7 @@ import time
 
 EIGHT_KB = 8192
 
-# def recvFds(sock, msglen=EIGHT_KB, maxfds=1):
-#     fds = array.array("i")   # Array of ints
-#     msg, ancdata, flags, addr = sock.recvmsg(msglen, socket.CMSG_LEN(maxfds * fds.itemsize))
-#     for cmsg_level, cmsg_type, cmsg_data in ancdata:
-#         if cmsg_level == socket.SOL_SOCKET and cmsg_type == socket.SCM_RIGHTS:
-#             # Append data, ignoring any truncated integers at the end.
-#             fds.frombytes(cmsg_data[:len(cmsg_data) - (len(cmsg_data) % fds.itemsize)])
-#     return msg, list(fds)
-
-# arr = os.listdir("/proc/self/fd")
-# print(arr)
-# print([(os.path.realpath("/proc/self/fd/"+x), os.readlink("/proc/self/fd/" + x)) for x in arr])
-
-# sock = socket.socket(fileno=4)
-# print(sock)
-# print(os.environ)
-#   
-# msgs, httpfd = recvFds(sock)
-# print(msgs)
-# print(httpfd)
-#   
-# httpSocket = socket.socket(fileno=httpfd[0])
-# httpSocket.send(b"HTTP/1.0 200 OK\r\n")
-# httpSocket.send(b"\r\n")
-# httpSocket.send(b"hi")
-# httpSocket.close()
-# exit(0)
-
-
-class NCGIHTTPServer(socketserver.BaseServer):
+class NCGIMHTTPServer(socketserver.BaseServer):
 
     def __init__(self, RequestHandlerClass):
         """Constructor.  May be extended, do not override."""
@@ -95,9 +66,9 @@ class NCGIHTTPServer(socketserver.BaseServer):
     def close_request(self, request):
         """Called to clean up an individual request."""
         request.close()
-        time.sleep(5);
+#         time.sleep(5);
         self.socket.send(b"data");
-        print("Pid:  ->", os.getpid())
+#         print("Pid:  ->", os.getpid())
         
     def server_close(self):
         """Called to clean-up the server.

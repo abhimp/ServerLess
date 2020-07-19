@@ -4,3 +4,4 @@ nova_gateway
 .project
 .settings/
 .pydevproject
+libc/libc_example

@@ -22,8 +22,9 @@ void basicHandler(const char *path, const char *method, const void *headers) {
 int main(int argc, char *argv[]) {
     printf("This is nova\n");
     novaRegisterHandler("/", NULL, NOVA_ROUTE_FUNC, NULL, basicHandler);
-    novaRegisterHandler("/cgi/", NULL, NOVA_ROUTE_CGI, "/tmp/test/", NULL);
-    novaRegisterHandler("/cgi-python/", NULL, NOVA_ROUTE_NCGI, "example_python/", NULL);
+    novaRegisterHandler("/cgi/", NULL, NOVA_ROUTE_NCGIS, "/tmp/test/", NULL);
+    novaRegisterHandler("/cgi-python/", NULL, NOVA_ROUTE_NCGIM, "libpython/", NULL);
+    novaRegisterHandler("/cgi-c/", NULL, NOVA_ROUTE_NCGIM, "libc/", NULL);
     novaHttpdServer("9087");
     return 0;
 }

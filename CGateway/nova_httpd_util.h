@@ -18,10 +18,10 @@ enum _epoll_type {
 	NOVA_SOCK_TYPE_CTL
 };
 
-struct _http_response_ {
-    int statuscode;
-    const char *headers[MAX_HEADERS][2];
-};
+//struct _http_response_ {
+//    int statuscode;
+//    const char *headers[MAX_HEADERS][2];
+//};
 
 struct _http_request_header_ {
 	enum _epoll_type socktype;
@@ -35,9 +35,11 @@ struct _http_request_header_ {
     size_t headerLen;
     char buf[EIGHT_KB]; //maximum header length allowed in apache
     size_t buflen;
-    struct _http_response_ response; //  although it is increasing the overall size of the struct,
+//    struct _http_response_ response; //  although it is increasing the overall size of the struct,
                                     // it is allowing me doing everything without memory management.
 };
+
+typedef struct _http_request_header_ nova_httpd_request;
 
 struct nova_map {
     void const **array;
@@ -52,14 +54,12 @@ int novaAddToMap(struct nova_map *map, const void *ele); //Map wont copy anythin
 const void *novaSearch(struct nova_map *map, const void *key);
 int novaDelFromMap(struct nova_map *map, const void *ele);
 
-typedef struct _http_request_header_ nova_request_connect;
-
-int novaReadTillDelim(nova_request_connect *conn, const char *delim, int delimLen, int peek);
+int novaReadTillDelim(nova_httpd_request *conn, const char *delim, int delimLen, int peek);
 #define novaReadTillEoH(x) novaReadTillDelim(x, "\r\n\r\n", 4, 0)
 #define novaPeekTillFirstLine(x) novaReadTillDelim(x, "\r\n", 2, 1)
 
 int novaHttpdPercentDecode(char *buffer, size_t size);
-int novaReadNParseHeaders(nova_request_connect *conn);
+int novaReadNParseHeaders(nova_httpd_request *conn);
 
 
 
@@ -69,13 +69,14 @@ int novaGetHttpRequestHeaderValue(const void *headers, int id, const char **name
 const char *novaGetQueryString(const void *headers);
 
 
-void novaStartResponseHeader(void *headers, int statuscode);
-void novaAddResponseHeader(void *headers, const char *name, const char *value);
-void novaEndResponseHeaderFile(void *headers, FILE *fp);
-#define novaEndResponseHeaderStd(x) novaEndResponseHeaderFile(x, stdout)
-#define novaEndResponseHeader(x) novaEndResponseHeaderFile(x, NULL)
+//void novaStartResponseHeader(void *headers, int statuscode);
+//void novaAddResponseHeader(void *headers, const char *name, const char *value);
+//void novaEndResponseHeaderFile(void *headers, FILE *fp);
+//#define novaEndResponseHeaderStd(x) novaEndResponseHeaderFile(x, stdout)
+//#define novaEndResponseHeader(x) novaEndResponseHeaderFile(x, NULL)
 
 int novaSendFd(int unix_sock, int fd, void *sendBuf, size_t sendBufLen);
 int novaRecvFd(int unix_sock, int *recvfd, void *retBuf, size_t retBufCapa);
 
+void cleanUpRecvBuf(int sockfd);
 #endif /* NOVA_HTTPD_UTIL_H_ */

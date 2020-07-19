@@ -1,10 +1,8 @@
 #ifndef __NOVA_HTTP_STATUS_CODE_H__
 #define __NOVA_HTTP_STATUS_CODE_H__
 
-#ifndef __NOVA_SERVER_MAIN__
-extern char *HTTP_RESPONSE_STATUS[512];
-#else
-char *HTTP_RESPONSE_STATUS[512] = {
+
+static char const * const HTTP_RESPONSE_STATUS[512] = {
     [0 ... 511] = "500 Internal Server Error",
     [100] = "100 Continue",
     [101] = "101 Switching Protocols",
@@ -61,5 +59,5 @@ char *HTTP_RESPONSE_STATUS[512] = {
     [510] = "510 Not Extended",
     [511] = "511 Network Authentication Required"
 };
-#endif // __NOVA_SERVER_MAIN__
+
 #endif // __NOVA_HTTP_STATUS_CODE_H__

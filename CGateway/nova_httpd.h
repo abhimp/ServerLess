@@ -11,8 +11,8 @@
 
 enum nova_route_type {
     NOVA_ROUTE_FILE,
-    NOVA_ROUTE_CGI,
-    NOVA_ROUTE_NCGI, //nova cgi
+    NOVA_ROUTE_NCGIS, //nova cgi single run
+    NOVA_ROUTE_NCGIM, //nova cgi multiple run
     NOVA_ROUTE_FUNC
 };
 
@@ -23,13 +23,13 @@ struct nova_control_socket {
     pid_t childpid;
     char *script;
     char serving;
-    struct nova_control_socket *next;
+    struct nova_control_socket *next, **prev;
 };
 
 
 
 typedef void (*nova_route_handler)(const char *path, const char *method, const void *headers);
-struct nova_control_socket *novaHandle(nova_request_connect *conn);
+struct nova_control_socket *novaHandle(nova_httpd_request *conn);
 int novaRegisterHandler(char *route, char *method, enum nova_route_type type, char *cdir, nova_route_handler handler);
 
 void handleControlConnection(struct nova_control_socket *ptr);

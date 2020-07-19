@@ -13,6 +13,7 @@
 #include <sys/socket.h>
 #include <assert.h>
 
+#include "picohttpparser.h"
 #include "nova_http_status_code.h"
 #include "nova_httpd_util.h"
 
@@ -60,7 +61,7 @@ int novaHttpdPercentDecode(char *buffer, size_t size) {
 
 
 #define MAX(x,y) (x>y?x:y)
-int novaReadTillDelim(nova_request_connect *conn, const char *delim,
+int novaReadTillDelim(nova_httpd_request *conn, const char *delim,
         int delimLen, int peek) {
     char *bufptr = conn->buf + conn->buflen;
     int rlen = recv(conn->sockfd, bufptr, EIGHT_KB - conn->buflen, MSG_PEEK);
@@ -93,7 +94,7 @@ int novaReadTillDelim(nova_request_connect *conn, const char *delim,
 /*
  * This function assumes that no data is read til now. Whatever we have is peeked.
  */
-int novaReadNParseHeaders(nova_request_connect *conn) { //it assumes that the
+int novaReadNParseHeaders(nova_httpd_request *conn) { //it assumes that the
     conn->buflen = 0;
     while (1) {
         int findEoH = novaReadTillEoH(conn);
@@ -147,7 +148,7 @@ int novaReadNParseHeaders(nova_request_connect *conn) { //it assumes that the
  *******************************************************/
 
 const char *novaGetHttpRequestHeader(const void *headers, const char *name) {
-    nova_request_connect *conn = DEREFENCE_STRUCT(nova_request_connect, headers, headers);
+    const nova_httpd_request *conn = headers; //DEREFENCE_STRUCT(nova_httpd_request, headers, headers);
     int i;
     for(i = 0; i < conn->headerLen; i++) {
         if(strncasecmp(name, conn->headers[i].name, conn->headers[i].name_len) == 0) {
@@ -158,12 +159,12 @@ const char *novaGetHttpRequestHeader(const void *headers, const char *name) {
 }
 
 int novaGetHttpRequestHeaderCnt(const void *headers) {
-    nova_request_connect *conn = DEREFENCE_STRUCT(nova_request_connect, headers, headers);
+    const nova_httpd_request *conn = headers; //DEREFENCE_STRUCT(nova_httpd_request, headers, headers);
     return (int)conn->headerLen;
 }
 
 int novaGetHttpRequestHeaderValue(const void *headers, int id, const char **name, const char **val) {
-    nova_request_connect *conn = DEREFENCE_STRUCT(nova_request_connect, headers, headers);
+    const nova_httpd_request *conn = headers; //DEREFENCE_STRUCT(nova_httpd_request, headers, headers);
     *name = NULL;
     *val = NULL;
     if(id >= conn->headerLen) {
@@ -175,50 +176,50 @@ int novaGetHttpRequestHeaderValue(const void *headers, int id, const char **name
 }
 
 const char *novaGetQueryString(const void *headers) {
-    nova_request_connect *conn = DEREFENCE_STRUCT(nova_request_connect, headers, headers);
+    const nova_httpd_request *conn = headers; //DEREFENCE_STRUCT(nova_httpd_request, headers, headers);
     return conn->queryString;
 }
 
-/*******************************************************
- * Response
- *******************************************************/
-void novaStartResponseHeader(void *headers, int statuscode) {
-    nova_request_connect *conn = DEREFENCE_STRUCT(nova_request_connect, headers, headers);
-    conn->response.statuscode = statuscode;
-}
-void novaAddResponseHeader(void *headers, const char *name, const char *value) {
-    nova_request_connect *conn = DEREFENCE_STRUCT(nova_request_connect, headers, headers);
-    int i;
-    for(i = 0; i < MAX_HEADERS-1; i++) {
-        if(conn->response.headers[i][0] == NULL) {
-            conn->response.headers[i][0] = name;
-            conn->response.headers[i][1] = value;
-            break;
-        }
-    }
-}
-void novaEndResponseHeaderFile(void *headers, FILE *fp) {
-    nova_request_connect *conn = DEREFENCE_STRUCT(nova_request_connect, headers, headers);
-    FILE *tmpfp = fp;
-    if(fp == NULL) {
-        int ffd = dup(conn->sockfd);
-        tmpfp = fdopen(ffd, "w");
-    }
-    fprintf(tmpfp, "HTTP/1.0 %s\r\n", HTTP_RESPONSE_STATUS[conn->response.statuscode]);
-    int i;
-    int contentType = 0;
-    for(i = 0; i < MAX_HEADERS && conn->response.headers[i][0]; i++) {
-        fprintf(tmpfp, "%s: %s\r\n", conn->response.headers[i][0], conn->response.headers[i][1]);
-        if(strcasecmp("Content-Type", conn->response.headers[i][0]) == 0)
-            contentType = 1;
-    }
-    if(!contentType)
-        fprintf(tmpfp, "Content-Type: text/plain\r\n");
-    fprintf(tmpfp, "\r\n");
-    fflush(tmpfp);
-    if(fp == NULL)
-        fclose(tmpfp);
-}
+///*******************************************************
+// * Response
+// *******************************************************/
+//void novaStartResponseHeader(void *headers, int statuscode) {
+//    nova_request_connect *conn = DEREFENCE_STRUCT(nova_request_connect, headers, headers);
+//    conn->response.statuscode = statuscode;
+//}
+//void novaAddResponseHeader(void *headers, const char *name, const char *value) {
+//    nova_request_connect *conn = DEREFENCE_STRUCT(nova_request_connect, headers, headers);
+//    int i;
+//    for(i = 0; i < MAX_HEADERS-1; i++) {
+//        if(conn->response.headers[i][0] == NULL) {
+//            conn->response.headers[i][0] = name;
+//            conn->response.headers[i][1] = value;
+//            break;
+//        }
+//    }
+//}
+//void novaEndResponseHeaderFile(void *headers, FILE *fp) {
+//    nova_request_connect *conn = DEREFENCE_STRUCT(nova_request_connect, headers, headers);
+//    FILE *tmpfp = fp;
+//    if(fp == NULL) {
+//        int ffd = dup(conn->sockfd);
+//        tmpfp = fdopen(ffd, "w");
+//    }
+//    fprintf(tmpfp, "HTTP/1.0 %s\r\n", HTTP_RESPONSE_STATUS[conn->response.statuscode]);
+//    int i;
+//    int contentType = 0;
+//    for(i = 0; i < MAX_HEADERS && conn->response.headers[i][0]; i++) {
+//        fprintf(tmpfp, "%s: %s\r\n", conn->response.headers[i][0], conn->response.headers[i][1]);
+//        if(strcasecmp("Content-Type", conn->response.headers[i][0]) == 0)
+//            contentType = 1;
+//    }
+//    if(!contentType)
+//        fprintf(tmpfp, "Content-Type: text/plain\r\n");
+//    fprintf(tmpfp, "\r\n");
+//    fflush(tmpfp);
+//    if(fp == NULL)
+//        fclose(tmpfp);
+//}
 
 /*******************************************************
  * END REQUEST-RESPONSE
@@ -350,7 +351,7 @@ int novaRecvFd(int unix_sock, int *recvfd, void *retBuf, size_t retBufCapa) {
     for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
         if (cmsg->cmsg_level == SOL_SOCKET
                 && cmsg->cmsg_type == SCM_RIGHTS) {
-            memcpy(&recvfd, CMSG_DATA(cmsg), sizeof(int));
+            memcpy(recvfd, CMSG_DATA(cmsg), sizeof(int));
             break;
         }
     }
@@ -360,3 +361,10 @@ int novaRecvFd(int unix_sock, int *recvfd, void *retBuf, size_t retBufCapa) {
 #undef CONTROL_LEN
 #undef MIN
 }
+
+
+void cleanUpRecvBuf(int sockfd) {
+    char *buf[EIGHT_KB];
+    recv(sockfd, buf, EIGHT_KB, MSG_DONTWAIT);
+}
+
