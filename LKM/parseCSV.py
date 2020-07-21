@@ -54,27 +54,27 @@ def printMySyscallDefinition(ret, name, syscall, args, argsName):
     printBuf("#endif")
 
     printBuf("")
+    printBuf("\t" "if(0) {") #balanced bracket always looks good
     printBuf(f"#ifdef NOVA_BASE_VERIFY_{syscall}")
-    printBuf("\t" f"if(NOVA_BASE_VERIFY_{syscall}(" + ", ".join(argsName) + ")) {")
+    printBuf("\t" "}", f"else if(NOVA_BASE_VERIFY_{syscall}(" + ", ".join(argsName) + ")) {")
     printBuf(f"#elif defined NOVA_BASE_VERIFY") #this is common. no argument will be provided
-    printBuf("\t" f"if(NOVA_BASE_VERIFY({syscall}))" " {")
+    printBuf("\t" "}", f"else if(NOVA_BASE_VERIFY({syscall}))" " {")
     printBuf("#else")
-#     printBuf("\t" "if(current->real_parent->pid != nova_ppid) {") #can be enabled only if nov_ppid is not zero
-    printBuf("\t" "if(!IS_SAME_AS_NOVA_ID(current->real_parent->pid)) {") #can be enabled only if nov_ppid is not zero
+    printBuf("\t" "} else if(!IS_SAME_AS_NOVA_ID(current->real_parent->pid)) {") #can be enabled only if nov_ppid is not zero
     printBuf("#endif")
     printBuf("\t\t" f"ret = origCall(" + ", ".join(argsName) + ");")
     printBuf("\t" "} else { ")
 
     printBuf("")
+    printBuf("\t\t" "if(0) {")
     printBuf(f"#ifdef NOVA_HANDLED_VERIFY_{syscall}")
-    printBuf("\t\t" f"if(NOVA_HANDLED_VERIFY_{syscall}(" + ", ".join(argsName) + ")) {")
+    printBuf("\t\t" "}",  f"else if(NOVA_HANDLED_VERIFY_{syscall}(" + ", ".join(argsName) + ")) {")
     printBuf("\t\t\t" f"ret = origCall(" + ", ".join(argsName) + ");")
-    printBuf("\t\t" "} ")
     printBuf(f"#elif defined NOVA_HANDLED_VERIFY")
-    printBuf("\t\t" f"if(NOVA_HANDLED_VERIFY({syscall})" + ") {")
+    printBuf("\t\t" "}", f"else if(NOVA_HANDLED_VERIFY({syscall})" + ") {")
     printBuf("\t\t\t" f"ret = origCall(" + ", ".join(argsName) + ");")
-    printBuf("\t\t" "} ")
     printBuf("#endif")
+    printBuf("\t\t" "} ")
 
     printBuf("")
     printBuf(f"#ifdef NOVA_POST_PROC_{syscall}")
@@ -118,7 +118,7 @@ def generateSourceFile(fileName, parsedSysCalls):
     startBuf()
     printBuf("")
     printBuf("static int nova_handled_syscals[] = {")
-    printBuf("\t" ",\n\t".join(sysCallsMap.keys()))
+    printBuf("\t" + ",\n\t".join(sysCallsMap.keys()))
     printBuf("};")
     handled = endBuf()
 

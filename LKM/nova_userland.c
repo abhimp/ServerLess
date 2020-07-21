@@ -28,13 +28,6 @@ int main(int argc, char *argv[]) {
         printf("Nice try\n");
         return 1;
     }
-//     fp = fopen("/proc/" LKM_INTERFACE_FILE_PROC, "w");
-//     if(!fp) {
-//         printf("Cannot open interface file\n");
-//         return 3;
-//     }
-//     fwrite(&info, sizeof(info), 1, fp);
-//     fclose(fp);
 
     fd = open("/proc/" LKM_INTERFACE_FILE_PROC, O_WRONLY);
     if(!fd) {
