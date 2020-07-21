@@ -201,7 +201,7 @@ void novaHttpdServer(char *port) {
                         conn->sockfd = 0;
                         continue;
                     }
-                    if (findEoH < 0) { //TODO -2 means overflow
+                    if (findEoH < 0) {
                         REMOVE_CLOSE_FD(conn->sockfd);
                         conn->sockfd = 0;
                         continue;

@@ -99,18 +99,30 @@ static void ncgimSendError(nova_httpd_request *conn, int status) {
 
 
 
-static int setEnv(int childFd, struct sockaddr const *address, socklen_t address_len, char *(*env)[2]) {
+static int setEnv(int childFd, char *(*inheritedEnv)[2], char ***curEnv, int *curEnvCapa) {
 #define SEND_500_ERROR(x) { \
         perror(x); \
         ncgimSendError(conn, 500); \
     }
+
 #define ADD2ENV(x, y) { \
-    if(setenv(x, y, 1) < 0) { \
-        SEND_500_ERROR("setenv"); \
-        assert(0); \
-        return -1; \
-    }\
+    if(*curEnvCapa - envLen < 2) { \
+        if(!(*curEnv = realloc(*curEnv, (*curEnvCapa + 16)*sizeof(char *)))) \
+            SEND_500_ERROR("realloc"); \
+        bzero(*curEnv + *curEnvCapa, 16*sizeof(char *)); \
+        *curEnvCapa += 16; \
+    } \
+    (*curEnv)[envLen] = realloc((*curEnv)[envLen], strlen(x) + strlen(y) + 2); /* `=` and `\0`, realloc prevents memoryleak */ \
+    if(!(*curEnv)[envLen]) { \
+        SEND_500_ERROR("malloc"); \
+    } \
+    strcpy((*curEnv)[envLen], x); \
+    strcat((*curEnv)[envLen], "="); \
+    strcat((*curEnv)[envLen], y); \
+    (*curEnv)[++envLen] = 0; \
 }
+
+    int envLen = 0;
     nova_httpd_request connStorage = { .sockfd = childFd };
     nova_httpd_request *conn;
     conn = &connStorage;
@@ -201,8 +213,8 @@ static int setEnv(int childFd, struct sockaddr const *address, socklen_t address
     ADD2ENV("SERVER_PROTOCOL", "HTTP/1.0");
     ADD2ENV("SERVER_SOFTWARE", "nova_cgi_gateway");
     //add from current paths
-    for(int i = 0; env[i][0]; i++) {
-        ADD2ENV(env[i][0], env[i][1]);
+    for(int i = 0; inheritedEnv[i][0]; i++) {
+        ADD2ENV(inheritedEnv[i][0], inheritedEnv[i][1]);
 //        putenv((char *)env[i]);
     }
 #undef ADD2ENV
@@ -211,39 +223,53 @@ static int setEnv(int childFd, struct sockaddr const *address, socklen_t address
     return 0;
 }
 
-void ncgimRunForever(void *ptr, void (*handler)(void)) {
-    char *(*env)[2] = ncgimStoreEnv();
+void ncgimRunForever(void (*handler)(void)) {
+//    char *(*inheritedEnv)[2] = ncgimStoreEnv();
+    char *(*inheritedEnv)[2] = ncgimStoreEnv();
+
+    char **currentEnv = NULL;
+    int currentEnvLen = 0;
     struct sockaddr_storage address;
     socklen_t address_len;
     int childFd;
     fflush(stdout);
-//    int stdinfd = dup(STDIN_FILENO);
-//    int stdoutfd = dup(STDOUT_FILENO);
+    int stdinfd = dup(STDIN_FILENO);
+    int stdoutfd = dup(STDOUT_FILENO);
 
-    struct ncgiInfo *info = ptr;
-
+    struct ncgiInfo *info = ncgimInitServer();
+//    printf("Cur at line %d environ: %p, %p, %s\n", __LINE__, environ, environ[0], environ[0]);
     while(1){
         address_len = sizeof(address);
         childFd = ncgimAccept(info->sockfd, (struct sockaddr *)&address, &address_len);
         if(childFd < 0){
             exit(1);
         }
-        if(setEnv(childFd, (struct sockaddr *)&address, address_len, env) < 0)
+
+//        printf("Cur at line %d environ: %p, %p, %s\n", __LINE__, environ, environ[0], environ[0]);
+        if(setEnv(childFd, inheritedEnv, &currentEnv, &currentEnvLen) < 0)
             exit(8);
 
+//        printf("Cur at line %d environ: %p, %p, %s\n", __LINE__, environ, environ[0], environ[0]);
+        environ = currentEnv;
         if(dup2(childFd, STDIN_FILENO) < 0)
             perror("dup2");
         if(dup2(childFd, STDOUT_FILENO) < 0)
             perror("dup2");
 //        close(childFd);
 
+        close(childFd);
+
         handler();
 
         fflush(stdout);
 
-        close(STDIN_FILENO);
-        close(STDOUT_FILENO);
-        close(childFd);
+//        close(STDIN_FILENO);
+//        close(STDOUT_FILENO);
+
+        if(dup2(stdinfd, STDIN_FILENO) < 0)
+            perror("dup2");
+        if(dup2(stdoutfd, STDOUT_FILENO) < 0)
+            perror("dup2");
         send(info->sockfd, "Hello", 5, 0);
     }
 }

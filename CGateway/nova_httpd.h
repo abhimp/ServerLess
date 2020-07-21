@@ -29,8 +29,10 @@ struct nova_control_socket {
 
 
 typedef void (*nova_route_handler)(const char *path, const char *method, const void *headers);
+typedef int (*nova_child_setup)(const char *path, const char *method, const char *exe, const void *headers); //to setup child
+
 struct nova_control_socket *novaHandle(nova_httpd_request *conn);
-int novaRegisterHandler(char *route, char *method, enum nova_route_type type, char *cdir, nova_route_handler handler);
+int novaRegisterHandler(char *route, char *method, enum nova_route_type type, char *cdir, nova_route_handler handler, nova_child_setup childsetter);
 
 void handleControlConnection(struct nova_control_socket *ptr);
 

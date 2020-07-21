@@ -34,6 +34,7 @@ struct nova_handler_enrty {
     char *method;
     char *cdir; //required in case of cgi,
     nova_route_handler handler;
+    nova_child_setup childsetter;
 };
 
 
@@ -424,6 +425,14 @@ static struct nova_control_socket *ncgiCreateWorker(struct nova_handler_enrty *e
     close(remotefd);
 //    printf("Local fd: %d\n", localfd);
 
+//typedef void (*nova_child_setup)(const char *path, const char *method, const char *exe, const void *headers);
+    if(entry->childsetter)
+        if(entry->childsetter(conn->path, conn->method, cgiPath, conn) < 0){
+//            perror("dup");
+            sendError(conn, 500);
+            exit(1);
+        }
+
     cgiPath -= 2; //extreamly bad hack to avoid memory allocation
     cgiPath[0] = '.';
     cgiPath[1] = '/';
@@ -446,13 +455,14 @@ static struct nova_control_socket *ncgiCreateWorker(struct nova_handler_enrty *e
 struct nova_map *novaNCGIMap = NULL;
 static struct nova_control_socket *handleWithNCGIM(struct nova_handler_enrty *entry, nova_httpd_request *conn) {
     if(!novaNCGIMap) {
-        novaNCGIMap = novaInitMap((int (*)(const void *, const void *))novaChannelComp);
+        novaNCGIMap = novaInitMap((int (*)(const void *, const void *))novaChannelComp); //argument is a function pointer
     }
 
     struct _nova_channel *channel, key;
     key = (struct _nova_channel){
         .scriptName = conn->path
     };
+
     channel = (struct _nova_channel *)novaSearch(novaNCGIMap, &key);
     if(!channel) {
         channel = malloc(sizeof(struct _nova_channel) + strlen(conn->path)+1); //do not wants to make two calls
@@ -594,7 +604,7 @@ void handleControlConnection(struct nova_control_socket *ptr) {
     }
 }
 
-int novaRegisterHandler(char *route, char *method, enum nova_route_type type, char *cdir, nova_route_handler handler) {
+int novaRegisterHandler(char *route, char *method, enum nova_route_type type, char *cdir, nova_route_handler handler, nova_child_setup childsetter) {
     if(handleRegistryCapa == handleRegistryCnt) {
         handlerRegistry = realloc(handlerRegistry, (handleRegistryCapa + 32) * sizeof(struct nova_handler_enrty));
         handleRegistryCapa += 32;
@@ -605,7 +615,8 @@ int novaRegisterHandler(char *route, char *method, enum nova_route_type type, ch
                                             .route = route,
                                             .method = method,
                                             .cdir = cdir,
-                                            .handler = handler
+                                            .handler = handler,
+                                            .childsetter = childsetter
                                         };
     handleRegistryCnt ++;
     return 0;
