@@ -20,9 +20,18 @@ int main(int argc, char *argv[]) {
     else if(strcmp(argv[1], "disable") == 0){
         info.order = NOVA_U2L_DISABLE;
     }
-    else if(strcmp(argv[1], "setppid") == 0 && argc >= 3){
+    else if(strcmp(argv[1], "setnid") == 0 && argc >= 3){
         info.order = NOVA_U2L_SET_NOVA_ID;
         info.nova_id = atoi(argv[2]);
+    }
+    else if(strcmp(argv[1], "setmpid") == 0 && argc >= 3){
+        info.order = NOVA_U2L_SET_MONITOR_PID;
+        info.monitor_pid = atoi(argv[2]);
+    }
+    else if(strcmp(argv[1], "setnidmpid") == 0 && argc >= 4){
+        info.order = NOVA_U2L_SET_NOVA_ID_N_MONITOR_PID;
+        info.nova_id = atoi(argv[2]);
+        info.monitor_pid = atoi(argv[3]);
     }
     else {
         printf("Nice try\n");

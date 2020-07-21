@@ -20,9 +20,27 @@ static int writeToFile(struct nova_user2lkm *info) {
 }
 
 int novaSetNid(nova_id_t nid) {
-    struct nova_user2lkm info;
-    info.order = NOVA_U2L_SET_NOVA_ID;
-    info.nova_id = nid;
+    struct nova_user2lkm info = {
+        .order = NOVA_U2L_SET_MONITOR_PID,
+        .nova_id = nid
+    };
+    return writeToFile(&info);
+}
+
+int novaSetMpid(pid_t mpid) {
+    struct nova_user2lkm info = {
+        .order = NOVA_U2L_SET_MONITOR_PID,
+        .monitor_pid = mpid
+    };
+    return writeToFile(&info);
+}
+
+int novaSetNidMpid(nova_id_t nid, pid_t mpid) {
+    struct nova_user2lkm info = {
+        .order = NOVA_U2L_SET_MONITOR_PID,
+        .nova_id = nid,
+        .monitor_pid = mpid
+    };
     return writeToFile(&info);
 }
 

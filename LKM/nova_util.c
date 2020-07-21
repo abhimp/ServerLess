@@ -4,6 +4,7 @@
 
 static long functionRedirected = 0;
 static long activeRedirection = 0;
+static pid_t monitorPid = 0;
 DECLARE_NOVA_ID();
 
 
@@ -26,6 +27,15 @@ long novaGetNumFunctionRedirected(void) {
 
 long novaGetActiveRedirections(void) {
     return activeRedirection;
+}
+
+void novaSetMonitorPid(pid_t mpid) {
+    if(mpid <= 2) return;
+    monitorPid = mpid;
+}
+
+pid_t novaGetMonitorPid(void) {
+    return monitorPid;
 }
 
 void novaSetNovaId(nova_id_t nid) {

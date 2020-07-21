@@ -110,7 +110,21 @@ static ssize_t write(struct file *file, const char *buf, size_t count, loff_t *p
     case NOVA_U2L_SET_NOVA_ID:
         {
             novaSetNovaId(myorder.nova_id);
-            printk(KERN_ALERT "Added nova filter for ppid %d\n", myorder.nova_id);
+            printk(KERN_ALERT "Added nova filter for nid %d\n", myorder.nova_id);
+        }
+        break;
+    case NOVA_U2L_SET_MONITOR_PID:
+        {
+            novaSetMonitorPid(myorder.monitor_pid);
+            printk(KERN_ALERT "Added nova monitor pid %d\n", myorder.monitor_pid);
+        }
+        break;
+    case NOVA_U2L_SET_NOVA_ID_N_MONITOR_PID:
+        {
+            novaSetNovaId(myorder.nova_id);
+            novaSetMonitorPid(myorder.monitor_pid);
+            printk(KERN_ALERT "Added nova filter for nid %d\n", myorder.nova_id);
+            printk(KERN_ALERT "Added nova monitor pid %d\n", myorder.monitor_pid);
         }
         break;
     default:

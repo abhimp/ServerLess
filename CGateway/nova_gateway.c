@@ -32,7 +32,7 @@ void basicHandler(const char *path, const char *method, const void *headers) {
 
 //typedef int (*nova_child_setup)(const char *path, const char *method, const char *exe, const void *headers);
 int configNcgimExec(const char *path, const char *method, const char *exe, const void *headers) {
-    //Here the order should be setsid, setreuid, setregid. Once gid is set no other set operation will be permitted
+    //Here the order should be setsid, setregid, setreuid. Once gid is set no other set operation will be permitted
     pid_t sessionId = setsid();
     if(sessionId < 0){
         perror("setsid");
@@ -121,7 +121,7 @@ void setupUidGid(int argc, char *argv[]) {
 
     printf("Function gid: %d, uid: %d\n", CLIENT_FUNCTION_GROUP_ID, CLIENT_FUNCTION_USER_ID);
 
-    novaSetNid(CLIENT_FUNCTION_GROUP_ID);
+    novaSetNidMpid(CLIENT_FUNCTION_GROUP_ID, getpid());
     novaEnable();
 }
 

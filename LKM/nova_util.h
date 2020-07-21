@@ -7,6 +7,7 @@ typedef asmlinkage long (*sys_call_ptr_t)(const struct pt_regs *);
 typedef gid_t nova_id_t;
 typedef kgid_t nova_kid_t;
 
+
 #define NOVA_ID_NAME() nova_iso_gpid
 #define DECLARE_NOVA_ID() static nova_kid_t NOVA_ID_NAME()
 #define GET_NOVA_ID() from_kgid(current_user_ns(), NOVA_ID_NAME())
@@ -42,6 +43,8 @@ typedef kgid_t nova_kid_t;
 
 long novaGetNumFunctionRedirected(void);
 long novaGetActiveRedirections(void);
+void novaSetMonitorPid(pid_t mpid);
+pid_t novaGetMonitorPid(void);
 void novaSetNovaId(nova_id_t nid);
 nova_id_t novaGetNovaId(void);
 void novaStoreOrigSysCall(int x, sys_call_ptr_t *y);
