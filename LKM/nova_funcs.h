@@ -9,7 +9,7 @@
  * All the functions recv same number of argument as the system call. verification macros are expected to be return 0 or 1 only.
  */
 
-#define GET_CURRENT_EGID() from_kgid(current_user_ns(), current_egid())
+#define GET_CURRENT_EGID() current_egid()
 
 #define NOVA_BASE_VERIFY(_) (IS_SAME_AS_NOVA_ID(GET_CURRENT_EGID()))
 
@@ -19,9 +19,9 @@
 // #define NOVA_HANDLED_VERIFY_open verify_open
 
 static int custom_verify_common(const char *syscall, int syscallnum) {
-    nova_id_t gid = GET_CURRENT_EGID();
+    nova_id_t gid = from_kgid(current_user_ns(), current_egid());
     printk(KERN_WARNING "syscall: %s, comm: %s, egid: %d, pid: %d, ppid: %d, glpid: %d, tgid: %d\n", syscall, current->comm, gid, current->pid, current->parent->pid, current->group_leader->pid, current->tgid);
-    return IS_SAME_AS_NOVA_ID(gid);
+    return IS_SAME_AS_NOVA_ID(GET_CURRENT_EGID());
 }
 #define NOVA_HANDLED_VERIFY(__x__) \
     custom_verify_common(#__x__, __NR_ ## __x__)

@@ -5,12 +5,14 @@
 typedef asmlinkage long (*sys_call_ptr_t)(const struct pt_regs *);
 
 typedef gid_t nova_id_t;
+typedef kgid_t nova_kid_t;
 
 #define NOVA_ID_NAME() nova_iso_gpid
-#define DECLARE_NOVA_ID() static nova_id_t NOVA_ID_NAME()
-#define SET_NOVA_ID(x) NOVA_ID_NAME() = x
-#define IS_SAME_AS_NOVA_ID(x) (x == NOVA_ID_NAME())
-#define CAN_REDIRECT_BASED_ON_NOVA_ID() (NOVA_ID_NAME() >= 2)
+#define DECLARE_NOVA_ID() static nova_kid_t NOVA_ID_NAME()
+#define GET_NOVA_ID() from_kgid(current_user_ns(), NOVA_ID_NAME())
+#define SET_NOVA_ID(x) NOVA_ID_NAME() = make_kgid(current_user_ns(), x)
+#define IS_SAME_AS_NOVA_ID(x) gid_eq(x, NOVA_ID_NAME())
+#define CAN_REDIRECT_BASED_ON_NOVA_ID() (GET_NOVA_ID() >= 2)
 #define CAN_REDIRECT_NOVA() (novaGetNovaId() >= 2)
 
 #define NOVA_max_syscalls 512 //it was hard to find a header which define it

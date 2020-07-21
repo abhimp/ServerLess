@@ -35,7 +35,7 @@ void novaSetNovaId(nova_id_t nid) {
 }
 
 nova_id_t novaGetNovaId(void) {
-    return NOVA_ID_NAME();
+    return GET_NOVA_ID();
 //     return nova_ppid;
 }
 
