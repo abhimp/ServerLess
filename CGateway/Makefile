@@ -18,9 +18,11 @@ NCGI_LIBC_OBJ := \
 all: nova_gateway libc/libc_example
 
 libc/libc_example: $(NCGI_LIBC_OBJ)
-	@gcc -Wall $(DEBUG) -o $@ $^
+	@echo "gcc $<"
+	@gcc -static -Wall $(DEBUG) -o $@ $^
 
 nova_gateway: $(OBJECTS)
+	@echo "gcc $<"
 	@gcc -Wall $(DEBUG) -o $@ $^
 
 clean: clean-libc
