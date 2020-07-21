@@ -20,8 +20,8 @@
 18,pwrite64,sys_pwrite64,"asmlinkage long sys_pwrite64(unsigned int fd, const char __user *buf, size_t count, loff_t pos);",Unblock,FALSE,FS,,fs/read_write.c
 19,readv,sys_readv,"asmlinkage long sys_readv(unsigned long fd, const struct iovec __user *vec, unsigned long vlen);",Unblock,FALSE,FS,,fs/read_write.c
 20,writev,sys_writev,"asmlinkage long sys_writev(unsigned long fd, const struct iovec __user *vec, unsigned long vlen);",Unblock,FALSE,FS,,fs/read_write.c
-21,access,sys_access,"asmlinkage long sys_access(const char __user *filename, int mode);",Block,TRUE,FS,,fs/open.c
-22,pipe,sys_pipe,asmlinkage long sys_pipe(int __user *fildes);,Block,TRUE,,,fs/pipe.c
+21,access,sys_access,"asmlinkage long sys_access(const char __user *filename, int mode);",Partial,TRUE,FS,signal whether a file is accessible or not,fs/open.c
+22,pipe,sys_pipe,asmlinkage long sys_pipe(int __user *fildes);,Unblock,TRUE,IPC,Pipe create a two fd for a single process. Cannot open any file or socket,fs/pipe.c
 23,select,sys_select,"asmlinkage long sys_select(int n, fd_set __user *inp, fd_set __user *outp, fd_set __user *exp, struct __kernel_old_timeval __user *tvp);",Unblock,FALSE,FS,,fs/select.c
 24,sched_yield,sys_sched_yield,asmlinkage long sys_sched_yield(void);,Unblock,FALSE,PROC,,kernel/sched/core.c
 25,mremap,sys_mremap,"asmlinkage long sys_mremap(unsigned long addr, unsigned long old_len, unsigned long new_len, unsigned long flags, unsigned long new_addr);",YTD,FALSE,MM,,mm/mmap.c
@@ -31,8 +31,8 @@
 29,shmget,sys_shmget,"asmlinkage long sys_shmget(key_t key, size_t size, int flag);",Block,TRUE,IPC,,ipc/shm.c
 30,shmat,sys_shmat,"asmlinkage long sys_shmat(int shmid, char __user *shmaddr, int shmflg);",Block,TRUE,IPC,,ipc/shm.c
 31,shmctl,sys_shmctl,"asmlinkage long sys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);",Block,TRUE,IPC,,ipc/shm.c
-32,dup,sys_dup,asmlinkage long sys_dup(unsigned int fildes);,Block,TRUE,FS,,fs/file.c
-33,dup2,sys_dup2,"asmlinkage long sys_dup2(unsigned int oldfd, unsigned int newfd);",Block,TRUE,FS,,fs/file.c
+32,dup,sys_dup,asmlinkage long sys_dup(unsigned int fildes);,Unblock,FALSE,FS,Only usefull if there are some already opened fd. Can not new fd.,fs/file.c
+33,dup2,sys_dup2,"asmlinkage long sys_dup2(unsigned int oldfd, unsigned int newfd);",Unblock,FALSE,FS,Only usefull if there are some already opened fd. Can not new fd.,fs/file.c
 34,pause,sys_pause,asmlinkage long sys_pause(void);,Unblock,TRUE,PROC,,kernel/signal.c
 35,nanosleep,sys_nanosleep,"asmlinkage long sys_nanosleep(struct __kernel_timespec __user *rqtp, struct __kernel_timespec __user *rmtp);",Unblock,FALSE,PROC,,kernel/hrtimer.c
 36,getitimer,sys_getitimer,"asmlinkage long sys_getitimer(int which, struct __kernel_old_itimerval __user *value);",Unblock,FALSE,PROC,,kernel/itimer.c
@@ -291,8 +291,8 @@
 289,signalfd4,sys_signalfd4,"asmlinkage long sys_signalfd4(int ufd, sigset_t __user *user_mask, size_t sizemask, int flags);",Unblock,FALSE,PROC,,fs/signalfd.c
 290,eventfd2,sys_eventfd2,"asmlinkage long sys_eventfd2(unsigned int count, int flags);",Block,TRUE,FS,,fs/eventfd.c
 291,epoll_create1,sys_epoll_create1,asmlinkage long sys_epoll_create1(int flags);,Unblock,FALSE,PROC,,fs/eventpoll.c
-292,dup3,sys_dup3,"asmlinkage long sys_dup3(unsigned int oldfd, unsigned int newfd, int flags);",Block,TRUE,FS,,fs/file.c
-293,pipe2,sys_pipe2,"asmlinkage long sys_pipe2(int __user *fildes, int flags);",Block,TRUE,FS,,fs/pipe.c
+292,dup3,sys_dup3,"asmlinkage long sys_dup3(unsigned int oldfd, unsigned int newfd, int flags);",Unblock,FALSE,FS,Only usefull if there are some already opened fd. Can not new fd.,fs/file.c
+293,pipe2,sys_pipe2,"asmlinkage long sys_pipe2(int __user *fildes, int flags);",Unblock,FALSE,IPC,Pipe create a two fd for a single process. Cannot open any file or socket,fs/pipe.c
 294,inotify_init1,sys_inotify_init1,asmlinkage long sys_inotify_init1(int flags);,Block,TRUE,FS,,fs/notify/inotify/inotify_user.c
 295,preadv,sys_preadv,"asmlinkage long sys_preadv(unsigned long fd, const struct iovec __user *vec, unsigned long vlen, unsigned long pos_l, unsigned long pos_h);",Unblock,FALSE,FS,,fs/read_write.c
 296,pwritev,sys_pwritev,"asmlinkage long sys_pwritev(unsigned long fd, const struct iovec __user *vec, unsigned long vlen, unsigned long pos_l, unsigned long pos_h);",Unblock,FALSE,FS,,fs/read_write.c
