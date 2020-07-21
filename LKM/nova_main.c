@@ -57,7 +57,7 @@ static int configureSyscallRedirection(void) {
     char *sym_name = "sys_call_table";
     sys_call_ptr_t *sys_call_table;
 
-    if(novaGetPPid() <= 2) return -ENOENT; // should not have any effect
+    if(!CAN_REDIRECT_NOVA()) return -ENOENT; // should not have any effect
 
     if(redirectionConfigured) return -ENOENT;
     redirectionConfigured = 1;
@@ -107,10 +107,10 @@ static ssize_t write(struct file *file, const char *buf, size_t count, loff_t *p
             restorSyscallRedirection();
         }
         break;
-    case NOVA_U2L_SET_PID:
+    case NOVA_U2L_SET_NOVA_ID:
         {
-            novaSetPPid(myorder.pid);
-            printk(KERN_ALERT "Added nova filter for ppid %d\n", myorder.pid);
+            novaSetNovaId(myorder.nova_id);
+            printk(KERN_ALERT "Added nova filter for ppid %d\n", myorder.nova_id);
         }
         break;
     default:

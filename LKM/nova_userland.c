@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
     }
     else if(strcmp(argv[1], "setppid") == 0 && argc >= 3){
         info.order = NOVA_U2L_SET_PID;
-        info.pid = atoi(argv[2]);
+        info.nova_id = atoi(argv[2]);
     }
     else {
         printf("Nice try\n");

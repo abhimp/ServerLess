@@ -4,7 +4,7 @@
 
 static long functionRedirected = 0;
 static long activeRedirection = 0;
-static pid_t nova_ppid = 0;
+DECLARE_NOVA_ID();
 
 
 static sys_call_ptr_t orig_systemcall_table[NOVA_max_syscalls] = {
@@ -28,13 +28,15 @@ long novaGetActiveRedirections(void) {
     return activeRedirection;
 }
 
-void novaSetPPid(pid_t pid) {
-    if (pid <= 2) return;
-    nova_ppid = pid;
+void novaSetNovaId(nova_id_t nid) {
+    if (nid <= 2) return;
+    SET_NOVA_ID(nid);
+//     nova_ppid = pid;
 }
 
-pid_t novaGetPPid(void) {
-    return nova_ppid;
+nova_id_t novaGetNovaId(void) {
+    return NOVA_ID_NAME();
+//     return nova_ppid;
 }
 
 void novaStoreOrigSysCall(int x, sys_call_ptr_t *y) {
@@ -42,7 +44,8 @@ void novaStoreOrigSysCall(int x, sys_call_ptr_t *y) {
 }
 
 void novaRedirectSysCall(int x, sys_call_ptr_t *y) {
-    if(nova_ppid >= 2) {
+//     if(nova_ppid >= 2) { //TODO replace with better MACRO
+    if(CAN_REDIRECT_BASED_ON_NOVA_ID()) { //TODO replace with better MACRO
         NOVA_REDIRECT(x, y);
     }
 }
@@ -61,7 +64,7 @@ void novaStoreAllOrigSysCalls(sys_call_ptr_t *y) {
 
 void novaRedirectAllSysCalls(sys_call_ptr_t *y) {
     int i;
-    if(nova_ppid >= 2) {
+    if(CAN_REDIRECT_BASED_ON_NOVA_ID()) {
         int numHandled = sizeof(nova_handled_syscals)/sizeof(nova_handled_syscals[0]);
         for(i = 0; i < numHandled; i++) {
             NOVA_REDIRECT(nova_handled_syscals[i], y);

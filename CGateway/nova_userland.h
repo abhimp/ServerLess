@@ -1,8 +1,8 @@
 #ifndef __NOVA_USERLAND_H__
 #define __NOVA_USERLAND_H__
 
-#include <unistd.h>
-int novaSetpid(pid_t pid);
+#include "nova_uapi.h"
+int novaSetNid(nova_id_t nid);
 
 int novaEnable();
 

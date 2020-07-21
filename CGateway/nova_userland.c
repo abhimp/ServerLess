@@ -19,10 +19,10 @@ static int writeToFile(struct nova_user2lkm *info) {
     return ret;
 }
 
-int novaSetpid(pid_t pid) {
+int novaSetNid(nova_id_t nid) {
     struct nova_user2lkm info;
-    info.order = NOVA_U2L_SET_PID;
-    info.pid = pid;
+    info.order = NOVA_U2L_SET_NOVA_ID;
+    info.nova_id = nid;
     return writeToFile(&info);
 }
 

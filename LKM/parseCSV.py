@@ -59,7 +59,8 @@ def printMySyscallDefinition(ret, name, syscall, args, argsName):
     printBuf(f"#elif defined NOVA_BASE_VERIFY") #this is common. no argument will be provided
     printBuf("\t" f"if(NOVA_BASE_VERIFY({syscall}))" " {")
     printBuf("#else")
-    printBuf("\t" "if(current->real_parent->pid != nova_ppid) {") #can be enabled only if nov_ppid is not zero
+#     printBuf("\t" "if(current->real_parent->pid != nova_ppid) {") #can be enabled only if nov_ppid is not zero
+    printBuf("\t" "if(!IS_SAME_AS_NOVA_ID(current->real_parent->pid)) {") #can be enabled only if nov_ppid is not zero
     printBuf("#endif")
     printBuf("\t\t" f"ret = origCall(" + ", ".join(argsName) + ");")
     printBuf("\t" "} else { ")

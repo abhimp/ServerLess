@@ -117,6 +117,9 @@ void setupUidGid(int argc, char *argv[]) {
     }
 
     printf("Function gid: %d, uid: %d\n", CLIENT_FUNCTION_GROUP_ID, CLIENT_FUNCTION_USER_ID);
+
+    novaSetNid(CLIENT_FUNCTION_GROUP_ID);
+    novaEnable();
 }
 
 // int novaRegisterHandler(char *route, char *method, char *cdir, nova_route_handler handler);

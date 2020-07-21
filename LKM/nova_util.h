@@ -4,6 +4,15 @@
 
 typedef asmlinkage long (*sys_call_ptr_t)(const struct pt_regs *);
 
+typedef gid_t nova_id_t;
+
+#define NOVA_ID_NAME() nova_iso_gpid
+#define DECLARE_NOVA_ID() static nova_id_t NOVA_ID_NAME()
+#define SET_NOVA_ID(x) NOVA_ID_NAME() = x
+#define IS_SAME_AS_NOVA_ID(x) (x == NOVA_ID_NAME())
+#define CAN_REDIRECT_BASED_ON_NOVA_ID() (NOVA_ID_NAME() >= 2)
+#define CAN_REDIRECT_NOVA() (novaGetNovaId() >= 2)
+
 #define NOVA_max_syscalls 512 //it was hard to find a header which define it
 
 #define NOVA_STORE_ORIG(x, y) { \
@@ -31,8 +40,8 @@ typedef asmlinkage long (*sys_call_ptr_t)(const struct pt_regs *);
 
 long novaGetNumFunctionRedirected(void);
 long novaGetActiveRedirections(void);
-void novaSetPPid(pid_t pid);
-pid_t novaGetPPid(void);
+void novaSetNovaId(nova_id_t nid);
+nova_id_t novaGetNovaId(void);
 void novaStoreOrigSysCall(int x, sys_call_ptr_t *y);
 void novaRedirectSysCall(int x, sys_call_ptr_t *y);
 void novaRestoreSysCall(int x, sys_call_ptr_t *y);
