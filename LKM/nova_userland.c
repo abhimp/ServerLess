@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
 //     FILE *fp;
     int fd;
     if (argc < 2) {
-        printf("use %s [enable, disable, setppid pid]\n", argv[0]);
+        printf("use %s [enable, disable, setnid nid, setmpid mpid, setnidmpid nid mpid]\n", argv[0]);
         return 4;
     }
 
