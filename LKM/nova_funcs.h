@@ -11,7 +11,7 @@
 
 #define GET_CURRENT_EGID() current_egid()
 
-#define NOVA_BASE_VERIFY(_) (IS_SAME_AS_NOVA_ID(GET_CURRENT_EGID()))
+#define NOVA_BASE_VERIFY(_) (!IS_SAME_AS_NOVA_ID(GET_CURRENT_EGID()))
 
 // static int verify_open(const char __user *filename, int flags, umode_t mode) {
 //     return strcmp(current->comm, current->parent->comm) == 0;
