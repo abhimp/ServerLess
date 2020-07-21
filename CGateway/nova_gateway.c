@@ -41,13 +41,13 @@ int configNcgimExec(const char *path, const char *method, const char *exe, const
 
     printf("sessionid: %d\n", sessionId);
 
-    if(setreuid(CLIENT_FUNCTION_USER_ID, CLIENT_FUNCTION_USER_ID) < 0) {
-        perror("setreuid at " __FILE__);
+    if(setregid(CLIENT_FUNCTION_GROUP_ID, CLIENT_FUNCTION_GROUP_ID) < 0) {
+        perror("setregid at " __FILE__);
         return -1;
     }
 
-    if(setregid(CLIENT_FUNCTION_GROUP_ID, CLIENT_FUNCTION_GROUP_ID) < 0) {
-        perror("setregid at " __FILE__);
+    if(setreuid(CLIENT_FUNCTION_USER_ID, CLIENT_FUNCTION_USER_ID) < 0) {
+        perror("setreuid at " __FILE__);
         return -1;
     }
     printf("gid: %d ", getgid());

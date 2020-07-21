@@ -26,3 +26,5 @@ static int custom_verify_common(const char *syscall, int syscallnum) {
 #define NOVA_HANDLED_VERIFY(__x__) \
     custom_verify_common(#__x__, __NR_ ## __x__)
 
+#define NOVA_HANDLED_VERIFY_setreuid(ruid, euid) \
+            (from_kuid(current_user_ns(), current_euid()) == 0)
