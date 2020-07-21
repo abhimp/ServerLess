@@ -447,6 +447,8 @@ static struct nova_control_socket *ncgiCreateWorker(struct nova_handler_enrty *e
 
     if(execle(cgiPath, cgiPath, NULL, env) < 0) {
         perror("execle");
+        sendError(conn, 500);
+        exit(1);
     }
 
     exit(0);
@@ -481,10 +483,6 @@ static struct nova_control_socket *handleWithNCGIM(struct nova_handler_enrty *en
         addition(&channel->working, worker);
         channel->numWorking ++;
     }
-//    printf("available workers:");
-//    for(struct nova_control_socket *tmp = channel->worker; tmp; tmp=tmp->next) printf(" %d", tmp->childpid);
-//    for(struct nova_control_socket *tmp = channel->working; tmp; tmp=tmp->next) printf(" %d", tmp->childpid);
-//    printf("\n");
 
     // SETUP is complete. send the fd and close it
     int sent = novaSendFd(worker->sockfd, conn->sockfd, conn->buf, conn->buflen);

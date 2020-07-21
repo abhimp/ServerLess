@@ -30,3 +30,5 @@ static int custom_verify_common(const char *syscall, int syscallnum) {
             (from_kuid(current_user_ns(), current_euid()) == 0)
 
 //strcmp(current->comm, current->parent->comm)
+#define NOVA_HANDLED_VERIFY_execve(a, b, c) \
+    (current->parent->pid == monitorPid && strcmp(current->comm, current->parent->comm) == 0)

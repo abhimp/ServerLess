@@ -41,12 +41,10 @@ pid_t novaGetMonitorPid(void) {
 void novaSetNovaId(nova_id_t nid) {
     if (nid <= 2) return;
     SET_NOVA_ID(nid);
-//     nova_ppid = pid;
 }
 
 nova_id_t novaGetNovaId(void) {
     return GET_NOVA_ID();
-//     return nova_ppid;
 }
 
 void novaStoreOrigSysCall(int x, sys_call_ptr_t *y) {
@@ -54,7 +52,6 @@ void novaStoreOrigSysCall(int x, sys_call_ptr_t *y) {
 }
 
 void novaRedirectSysCall(int x, sys_call_ptr_t *y) {
-//     if(nova_ppid >= 2) { //TODO replace with better MACRO
     if(CAN_REDIRECT_BASED_ON_NOVA_ID()) { //TODO replace with better MACRO
         NOVA_REDIRECT(x, y);
     }

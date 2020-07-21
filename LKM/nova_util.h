@@ -36,7 +36,7 @@ typedef kgid_t nova_kid_t;
 	}\
 }
 
-#define RESET_COUNTER functionRedirected=0
+#define RESET_COUNTER functionRedirected = 0
 
 #ifndef NOVA_REDIRECT_SOURCE
 #endif
