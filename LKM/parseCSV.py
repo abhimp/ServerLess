@@ -37,6 +37,7 @@ def parse(row, index):
 
 def printMySyscallDefinition(ret, name, syscall, args, argsName):
     printBuf("//"+"="*30)
+    printBuf(f"#ifdef __NR_{syscall}")
     printBuf("static asmlinkage", ret)
     printBuf(f"{name}(" + ", ".join(args) + ") {")
     printBuf("\t" f"{ret} ret = -EPERM;")
@@ -92,6 +93,7 @@ def printMySyscallDefinition(ret, name, syscall, args, argsName):
     printBuf("#endif")
     printBuf("\t" "return ret;")
     printBuf("}")
+    printBuf(f"#endif //__NR_{syscall}")
     printBuf("")
 
 def generateSourceFile(fileName, parsedSysCalls):
@@ -111,14 +113,20 @@ def generateSourceFile(fileName, parsedSysCalls):
     printBuf("static sys_call_ptr_t nova_syscall_table[NOVA_max_syscalls] = {")
     printBuf("\t" "[0 ... NOVA_max_syscalls-1] = NULL,")
     for num, name in sysCallsMap.items():
+        printBuf(f"#ifdef {num}")
         printBuf("\t" f"[{num}] = (sys_call_ptr_t) {name},")
+        printBuf("#endif")
     printBuf("};")
     table = endBuf()
 
     startBuf()
     printBuf("")
     printBuf("static int nova_handled_syscals[] = {")
-    printBuf("\t" + ",\n\t".join(sysCallsMap.keys()))
+    for key in sysCallsMap.keys():
+        printBuf(f"#ifdef {key}")
+        printBuf(f"\t{key},")
+        printBuf(f"#endif")
+#     printBuf("\t" + ",\n\t".join(sysCallsMap.keys()))
     printBuf("};")
     handled = endBuf()
 
