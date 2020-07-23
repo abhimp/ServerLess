@@ -27,9 +27,14 @@ struct nova_control_socket {
 };
 
 
+#define NOVA_STR1(x, y) # y
+#define NOVA_STR(X) NOVA_STR1("", X)
+#define NOVA_STR_LINE() NOVA_STR(__LINE__)
+#define NOVA_FILE_N_LINE __FILE__ ":" NOVA_STR_LINE()
+
 
 typedef void (*nova_route_handler)(const char *path, const char *method, const void *headers);
-typedef int (*nova_child_setup)(const char *path, const char *method, const char *exe, const void *headers); //to setup child
+typedef int (*nova_child_setup)(const char *path, const char *method, const char *exe, const void *headers, const int uid); //to setup child
 
 struct nova_control_socket *novaHandle(nova_httpd_request *conn);
 int novaRegisterHandler(char *route, char *method, enum nova_route_type type, char *cdir, nova_route_handler handler, nova_child_setup childsetter);

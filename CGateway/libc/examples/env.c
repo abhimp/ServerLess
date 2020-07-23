@@ -7,11 +7,9 @@
 
 #include <stdio.h>
 
-#include "libncgim.h"
-
 extern char **environ;
 
-void handle(void) {
+void nova_func_start(void) {
     printf("HTTP/1.0 200 OK\r\n");
     printf("Content-Type: text/plain\r\n");
     printf("\r\n");
@@ -21,7 +19,3 @@ void handle(void) {
     }
 }
 
-int main() {
-//    void *info = ncgimInitServer();
-    ncgimRunForever(handle);
-}

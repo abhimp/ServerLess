@@ -113,11 +113,9 @@ static int listenServer(const char *port, int blocking) {
 #if 1
 void novaHttpdServer(char *port) {
 #define MAX_EVENTS 100
-#define STR1(x, y) # y
-#define STR(X) STR1("", X)
 #define REMOVE_CLOSE_FD(fd) {\
                                 if (epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, NULL) == -1) { \
-                                    perror("epoll_ctl: " # fd " at " STR(__LINE__)); \
+                                    perror("epoll_ctl: " # fd " at " NOVA_FILE_N_LINE); \
                                     fprintf(stderr, #fd " = %d, errno= %d\n", fd, errno); \
                                     exit(EXIT_FAILURE); \
                                 } \

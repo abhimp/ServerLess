@@ -5,16 +5,18 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <limits.h>
+#include <sys/stat.h>
 
 #include "nova_httpd.h"
 #include "nova_userland.h"
 
 static int CLIENT_FUNCTION_GROUP_ID = 0;
 static int CLIENT_FUNCTION_USER_ID = 0;
+static char *SCRATCH_DIRECTORY = NULL;
 
 
-
-void basicHandler(const char *path, const char *method, const void *headers) {
+static void basicHandler(const char *path, const char *method, const void *headers) {
     printf("\r\n");
     printf("Hi there\n");
     printf("The path: %s \n", path);
@@ -29,10 +31,39 @@ void basicHandler(const char *path, const char *method, const void *headers) {
     }
 }
 
+static int prepareScrachDir(uid_t uid) {
+    if(!SCRATCH_DIRECTORY)
+        return 0;
+    pid_t pid = getpid();
+    if(pid < 0) {
+        perror("getpid");
+        return 1;
+    }
+    char scratchdir[PATH_MAX];
+    snprintf(scratchdir, PATH_MAX, "%s/%d", SCRATCH_DIRECTORY, pid);
+
+    if(mkdir(scratchdir, 0700) < 0) {
+        perror("mkdir at " NOVA_FILE_N_LINE);
+        return -1;
+    }
+    if(chown(scratchdir, uid, CLIENT_FUNCTION_GROUP_ID) < 0) {
+        perror("chown at " NOVA_FILE_N_LINE);
+        return -1;
+    }
+    if(chdir(scratchdir) < 0) {
+        perror("chdir at " NOVA_FILE_N_LINE);
+        return -1;
+    }
+
+    return 0;
+}
 
 //typedef int (*nova_child_setup)(const char *path, const char *method, const char *exe, const void *headers);
-int configNcgimExec(const char *path, const char *method, const char *exe, const void *headers) {
+static int configNcgimExec(const char *path, const char *method, const char *exe, const void *headers, const int uid) {
     //Here the order should be setsid, setregid, setreuid. Once gid is set no other set operation will be permitted
+
+    return prepareScrachDir(uid);
+
     pid_t sessionId = setsid();
     if(sessionId < 0){
         perror("setsid");
@@ -46,7 +77,7 @@ int configNcgimExec(const char *path, const char *method, const char *exe, const
         return -1;
     }
 
-    if(setreuid(CLIENT_FUNCTION_USER_ID, CLIENT_FUNCTION_USER_ID) < 0) {
+    if(setreuid(uid, uid) < 0) {
         perror("setreuid at " __FILE__);
         return -1;
     }
@@ -55,7 +86,7 @@ int configNcgimExec(const char *path, const char *method, const char *exe, const
     return 0;
 }
 
-void setupUidGid(int argc, char *argv[]) {
+static void setupUidGid(int argc, char *argv[]) {
     int opt;
     int uid = 0;
     int ugid = 0;
@@ -67,8 +98,17 @@ void setupUidGid(int argc, char *argv[]) {
         exit(1);
     }
 
-    while ((opt = getopt(argc, argv, "u:g:")) != -1) {
+    while ((opt = getopt(argc, argv, "u:g:d:")) != -1) {
         switch(opt) {
+        case 'd':
+            {
+                SCRATCH_DIRECTORY = realpath(optarg, NULL);
+                if(!SCRATCH_DIRECTORY) {
+                    perror("realpath" " at " NOVA_FILE_N_LINE);
+                    exit(1);
+                }
+            }
+            break;
         case 'u':
             {
                 uid = atoi(optarg);
@@ -119,6 +159,17 @@ void setupUidGid(int argc, char *argv[]) {
         exit(1);
     }
 
+//    if(SCRATCH_DIRECTORY) {
+//        if(mkdir(SCRATCH_DIRECTORY, 0777) < 0) {
+//            perror("mkdir at " NOVA_FILE_N_LINE);
+//            exit(1);
+//        }
+//        if(chown(SCRATCH_DIRECTORY, 0, CLIENT_FUNCTION_GROUP_ID) < 0) {
+//            perror("chown at " NOVA_FILE_N_LINE);
+//            exit(1);
+//        }
+//    }
+
     printf("Function gid: %d, uid: %d\n", CLIENT_FUNCTION_GROUP_ID, CLIENT_FUNCTION_USER_ID);
 
     novaSetNidMpid(CLIENT_FUNCTION_GROUP_ID, getpid());
@@ -131,8 +182,8 @@ int main(int argc, char *argv[]) {
     printf("This is nova\n");
     novaRegisterHandler("/", NULL, NOVA_ROUTE_FUNC, NULL, basicHandler, NULL);
     novaRegisterHandler("/cgi/", NULL, NOVA_ROUTE_NCGIS, "/tmp/test/", NULL, NULL);
-    novaRegisterHandler("/cgi-python/", NULL, NOVA_ROUTE_NCGIM, "libpython/", NULL, NULL);
-    novaRegisterHandler("/cgi-c/", NULL, NOVA_ROUTE_NCGIM, "libc/", NULL, configNcgimExec);
+    novaRegisterHandler("/cgi-python/", NULL, NOVA_ROUTE_NCGIM, "libpython/", NULL, configNcgimExec);
+    novaRegisterHandler("/cgi-c/", NULL, NOVA_ROUTE_NCGIM, "libc/examples/", NULL, configNcgimExec);
     novaHttpdServer("9087");
     return 0;
 }

@@ -11,27 +11,27 @@ OBJECTS := \
 
 NCGI_LIBC_OBJ := \
 	picohttpparser.o \
-	nova_httpd_util.o \
-	libc/libncgim.o \
-	libc/example_m.o
+	nova_httpd_util.o
 
-all: nova_gateway libc/libc_example
+.PHONY: all clean libc clean-libc
 
-libc/libc_example: $(NCGI_LIBC_OBJ)
-	@echo "gcc $<"
-	@gcc -static -Wall $(DEBUG) -o $@ $^
+all: nova_gateway libc
+
+libc: $(NCGI_LIBC_OBJ)
+	make -C libc NCGI_LIBC_OBJ="$(patsubst %,../%,$(NCGI_LIBC_OBJ))" DEBUG="$(DEBUG)" all
 
 nova_gateway: $(OBJECTS)
-	@echo "gcc $<"
+	@echo "ld $@"
 	@gcc -Wall $(DEBUG) -o $@ $^
 
 clean: clean-libc
 	@rm -rf nova_gateway $(OBJECTS)
 	
 clean-libc:
-	@rm -rf libc/libc_example $(NCGI_LIBC_OBJ)
+	@rm -rf $(NCGI_LIBC_OBJ)
+	@make -C libc clean
 
 %.o: %.c
-	@echo "cc $<"
+	@echo "cc $@"
 	@gcc -Wall $(DEBUG) -c -o $@ $<
 

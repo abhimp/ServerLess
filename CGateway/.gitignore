@@ -1,7 +1,13 @@
 nova_gateway
 *.o
+
+# function executables
+*.fn
 .cproject
 .project
 .settings/
 .pydevproject
 libc/libc_example
+
+__pycache__
+*.pyc

@@ -273,3 +273,13 @@ void ncgimRunForever(void (*handler)(void)) {
         send(info->sockfd, "Hello", 5, 0);
     }
 }
+
+
+
+void nova_func_start(void);
+
+int main() {
+//    void *info = ncgimInitServer();
+    ncgimRunForever(nova_func_start);
+}
+

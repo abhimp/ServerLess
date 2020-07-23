@@ -23,6 +23,8 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <errno.h>
+#include <limits.h>
 
 #include "nova_httpd.h"
 #include "nova_http_request_handler.h"
@@ -344,10 +346,10 @@ static struct nova_control_socket *ncgiGetWorker(struct _nova_channel *chan) {
     return worker;
 }
 
-
+static int ncgi_unique_id = 5001;
 static struct nova_control_socket *ncgiCreateWorker(struct nova_handler_enrty *entry, nova_httpd_request *conn) {
 #define SEND_500_ERROR(st) { \
-        perror(st); \
+        perror(st " at " NOVA_FILE_N_LINE); \
         sendError(conn, 500); \
         return NULL; \
     }
@@ -360,6 +362,8 @@ static struct nova_control_socket *ncgiCreateWorker(struct nova_handler_enrty *e
 
     remotefd = sockvector[0];
     localfd = sockvector[1];
+    int uid = ncgi_unique_id+1;
+    ncgi_unique_id ++;
 
 //    printf("localfd: %d remotefd: %d", localfd, remotefd);
 
@@ -389,30 +393,30 @@ static struct nova_control_socket *ncgiCreateWorker(struct nova_handler_enrty *e
     }
 
 #undef SEND_500_ERROR
-
-    char *cgiPath = conn->path + entry->routelen;
-    char cwd[200];
-    if(!getcwd(cwd, sizeof(cwd))) {
-        perror("getcwd");
-        sendError(conn, 500);
-        exit(1);
+#define SEND_ERROR(st, num) { \
+        perror(st " at " NOVA_FILE_N_LINE); \
+        sendError(conn, num); \
+        exit(1); \
     }
 
-    if(!entry->cdir) {
-        sendError(conn, 404);
-        exit(1);
-    }
+//    char *cgiPath = conn->path + entry->routelen;
+    char cgiPath[PATH_MAX];
 
-    if(chdir(entry->cdir) < 0){
-        perror("chdir");
-        sendError(conn, 404);
-        exit(1);
+    if(!realpath(entry->cdir, cgiPath))
+        SEND_ERROR("realpath: ", 500);
+
+    printf("cgiPath: %s\n", cgiPath);
+    int pathlen = strlen(cgiPath);
+    if(cgiPath[pathlen - 1] != '/') {
+        cgiPath[pathlen] = '/';
+        cgiPath[++pathlen] = 0;
     }
+    strcpy(cgiPath + pathlen, conn->path + entry->routelen);
 
     if(access(cgiPath, X_OK) < 0) {
-        perror("access");
-        sendError(conn, 403);
-        exit(1);
+        strcat(cgiPath, ".fn");
+        if(access(cgiPath, X_OK))
+            SEND_ERROR("access", 403);
     }
 
     localfd = dup2(remotefd, 4); //we want local-fd to be 4
@@ -423,19 +427,15 @@ static struct nova_control_socket *ncgiCreateWorker(struct nova_handler_enrty *e
     }
 
     close(remotefd);
-//    printf("Local fd: %d\n", localfd);
 
 //typedef void (*nova_child_setup)(const char *path, const char *method, const char *exe, const void *headers);
-    if(entry->childsetter)
-        if(entry->childsetter(conn->path, conn->method, cgiPath, conn) < 0){
-//            perror("dup");
+    if(entry->childsetter) {
+        if(entry->childsetter(conn->path, conn->method, cgiPath, conn, uid) < 0){
             sendError(conn, 500);
             exit(1);
         }
+    }
 
-    cgiPath -= 2; //extreamly bad hack to avoid memory allocation
-    cgiPath[0] = '.';
-    cgiPath[1] = '/';
 
     char FD[20];
     snprintf(FD, 20, "NCGI_FD=%d", localfd);
@@ -488,7 +488,7 @@ static struct nova_control_socket *handleWithNCGIM(struct nova_handler_enrty *en
     int sent = novaSendFd(worker->sockfd, conn->sockfd, conn->buf, conn->buflen);
 
     if(sent <= 0) { //socket closed, possibly the process
-        //TODO cleanup
+        //TODO cleanup if any
         kill(worker->childpid, SIGTERM); //just a precaution
         close(worker->sockfd);
         ret = NULL;
