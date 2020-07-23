@@ -7,6 +7,11 @@ import os
 class MyHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
 #         self.end_headers();
+#         self.send_response(code, message)
+        
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
         for k, v in os.environb.items():
             self.wfile.write(k)
             self.wfile.write(b": ")

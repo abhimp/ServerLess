@@ -45,11 +45,7 @@ void handleControlConnection(struct nova_control_socket *ptr);
 void novaHttpdServer(char *port);
 
 
-#define CLEAN_UP_ZOMBIES while(1) { \
-            int status; \
-            pid_t childpid = waitpid(0, &status, WNOHANG); \
-            if(childpid <= 0) break; \
-        }
+
 
 
 #endif

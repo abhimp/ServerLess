@@ -66,7 +66,7 @@ int novaReadTillDelim(nova_httpd_request *conn, const char *delim,
     char *bufptr = conn->buf + conn->buflen;
     int rlen = recv(conn->sockfd, bufptr, EIGHT_KB - conn->buflen, MSG_PEEK);
     // the idea here is to read upto end of the header and end of header only. Not single byte from the
-    if (rlen <= 0) { //TODO
+    if (rlen <= 0) {
         return -1;
     }
     char *searchptr = conn->buf + MAX(0, conn->buflen + 1 - delimLen); //just in case part of crlf was in last read
@@ -80,7 +80,7 @@ int novaReadTillDelim(nova_httpd_request *conn, const char *delim,
     }
     if(!peek) {
         int newRlen = recv(conn->sockfd, bufptr, rlen, 0); //clear up the buffer
-        assert(newRlen == newRlen); //TODO add other handler
+        assert(newRlen == newRlen); //Need some kind of handler. However, it is less likely to occure
     }
     conn->buflen += rlen;
 
@@ -98,12 +98,12 @@ int novaReadNParseHeaders(nova_httpd_request *conn) { //it assumes that the
     conn->buflen = 0;
     while (1) {
         int findEoH = novaReadTillEoH(conn);
-        if (findEoH == -2) {
+        if (findEoH == -2) {// -2 means overflow
             close(conn->sockfd);
             conn->sockfd = 0;
             exit(2);
         }
-        if (findEoH < 0) { //TODO -2 means overflow
+        if (findEoH < 0) {
             close(conn->sockfd);
             conn->sockfd = 0;
             continue;

@@ -6,6 +6,8 @@ OBJECTS := \
 	nova_gateway.o \
 	nova_httpd.o \
 	nova_http_request_handler.o \
+	nova_http_ncgim_handler.o \
+	nova_http_ncgis_handler.o \
 	nova_httpd_util.o \
 	picohttpparser.o
 

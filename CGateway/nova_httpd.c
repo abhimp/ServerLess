@@ -25,7 +25,6 @@
 
 #define __NOVA_SERVER_MAIN__
 #include "nova_httpd.h"
-#include "nova_http_request_handler.h"
 
 #define MAX(x, y) (x > y ? x : y)
 
@@ -110,7 +109,6 @@ static int listenServer(const char *port, int blocking) {
     return listenfd;
 }
 
-#if 1
 void novaHttpdServer(char *port) {
 #define MAX_EVENTS 100
 #define REMOVE_CLOSE_FD(fd) {\
@@ -230,7 +228,6 @@ void novaHttpdServer(char *port) {
                         }
                     }
                     fprintf(stderr, "closing fd for path: %s\n", conn->path);
-//                    REMOVE_CLOSE_FD(conn->sockfd);
                     close(conn->sockfd);
                     conn->sockfd = 0;
                     connPool[conPoolLen] = conn;
@@ -243,82 +240,11 @@ void novaHttpdServer(char *port) {
             }
         }
 
-        CLEAN_UP_ZOMBIES;
+        //CLEAN_UP_ZOMBIES
+        while(1) {
+            int status;
+            pid_t childpid = waitpid(0, &status, WNOHANG); //it is really important that I use non-blocking call here
+            if(childpid <= 0) break;
+        }
     }
 }
-#else
-
-void novaHttpdServer(char *port) {
-    struct sockaddr_in clientaddr;
-    socklen_t addrlen;
-    int clientFd;
-    int maxfd = 0;
-    nova_httpd_request connections[MAX_CONNECTIONS]; //TODO optimize
-    int listenfd;
-
-	fd_set rfds;
-
-    listenfd = listenServer(port, 0);
-
-    maxfd = listenfd;
-	while(1){
-		FD_ZERO(&rfds);
-		maxfd = listenfd;
-        FD_SET(listenfd, &rfds);
-        int x;
-		for(x = 0; x < MAX_CONNECTIONS; x++) { //TODO optimize by defering
-            if(!connections[x].sockfd) continue;
-			FD_SET(connections[x].sockfd, &rfds);
-			if(maxfd < connections[x].sockfd)
-				maxfd = connections[x].sockfd;
-		}
-
-		int selRet = select(maxfd + 1, &rfds, NULL, NULL, NULL);
-        if(selRet < 0) {
-            if(errno == EINTR) //incase of interupt ignore TODO handle it later
-                continue;
-            perror("select");
-            return;
-        }
-
-        if(FD_ISSET(listenfd, &rfds)) { //accept will be called at the end
-            addrlen = sizeof(clientaddr);
-            clientFd = accept4 (listenfd, (struct sockaddr *) &clientaddr, &addrlen, SOCK_CLOEXEC);
-            if(clientFd <= 0)
-                continue;
-
-            if(clientFd == MAX_CONNECTIONS) {
-                cleanClose(clientFd);
-                continue;
-            }
-
-            connections[clientFd] = (nova_httpd_request) {
-                                       .sockfd = clientFd,
-                                       .buflen = 0
-                                };
-        }
-
-        for(x = 0; x < MAX_CONNECTIONS; x ++) {
-            nova_httpd_request *conn = &connections[x];
-            if(FD_ISSET(conn->sockfd, &rfds)) {
-                int findEoH = novaPeekTillFirstLine(conn);
-                if(findEoH == -2) {
-                    close(conn->sockfd);
-                    conn->sockfd = 0;
-                    continue;
-                }
-                if(findEoH < 0) { //TODO -2 means overflow
-                    forceClose(conn->sockfd);
-                    conn->sockfd = 0;
-                    continue;
-                }
-
-                handleRequest(conn);
-                close(conn->sockfd);
-                conn->sockfd = 0;
-            }
-        }
-        CLEAN_UP_ZOMBIES;
-    }
-}
-#endif
