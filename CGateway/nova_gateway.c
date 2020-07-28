@@ -184,6 +184,7 @@ int main(int argc, char *argv[]) {
     novaRegisterHandler("/cgi/", NULL, NOVA_ROUTE_NCGIS, "/tmp/test/", NULL, NULL);
     novaRegisterHandler("/cgi-python/", NULL, NOVA_ROUTE_NCGIM, "libpython/", NULL, configNcgimExec);
     novaRegisterHandler("/cgi-c/", NULL, NOVA_ROUTE_NCGIM, "libc/examples/", NULL, configNcgimExec);
+    novaRegisterHandler("/cgi-go/", NULL, NOVA_ROUTE_NCGIM, "libgo/examples/", NULL, configNcgimExec);
     novaHttpdServer("9087");
     return 0;
 }

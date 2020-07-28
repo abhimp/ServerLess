@@ -20,7 +20,8 @@ NCGI_LIBC_OBJ := \
 all: nova_gateway libc
 
 libc: $(NCGI_LIBC_OBJ)
-	make -C libc NCGI_LIBC_OBJ="$(patsubst %,../%,$(NCGI_LIBC_OBJ))" DEBUG="$(DEBUG)" all
+	@make -C libc NCGI_LIBC_OBJ="$(patsubst %,../%,$(NCGI_LIBC_OBJ))" DEBUG="$(DEBUG)" all
+	@make -C libgo NCGI_LIBC_OBJ="$(patsubst %,../%,$(NCGI_LIBC_OBJ))" DEBUG="$(DEBUG)" all
 
 nova_gateway: $(OBJECTS)
 	@echo "ld $@"
@@ -32,6 +33,7 @@ clean: clean-libc
 clean-libc:
 	@rm -rf $(NCGI_LIBC_OBJ)
 	@make -C libc clean
+	@make -C libgo clean
 
 %.o: %.c
 	@echo "cc $@"

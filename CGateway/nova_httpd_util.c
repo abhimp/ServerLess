@@ -98,7 +98,7 @@ int novaReadNParseHeaders(nova_httpd_request *conn) { //it assumes that the
     conn->buflen = 0;
     while (1) {
         int findEoH = novaReadTillEoH(conn);
-        if (findEoH == -2) {// -2 means overflow
+        if (findEoH == -2) {//TODO -2 means overflow
             close(conn->sockfd);
             conn->sockfd = 0;
             exit(2);

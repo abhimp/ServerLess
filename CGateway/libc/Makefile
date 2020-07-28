@@ -8,10 +8,8 @@ EXES := $(patsubst %.o,%.fn,$(OBJECTS))
 DEP_OBJECTS := libncgim.o
 
 all: $(DEP_OBJECTS) $(OBJECTS) $(EXES)
-	@echo $(OBJECTS) $(EXES)
 
 clean:
-	@echo "clean"
 	@rm -f  $(DEP_OBJECTS) $(EXES) $(OBJECTS)  || true
 	@rm -f examples/*.o examples/*.fn || true
 	
@@ -21,4 +19,4 @@ clean:
 
 %.fn: %.o
 	@echo "ld $@"
-	@gcc -Wall $(DEBUG) -o $@ $< $(NCGI_LIBC_OBJ)  $(DEP_OBJECTS)
+	@gcc -Wall $(DEBUG) -o $@ $< $(NCGI_LIBC_OBJ) -static $(DEP_OBJECTS)
