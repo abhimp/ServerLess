@@ -176,6 +176,9 @@ func Serve(handler http.Handler) {
 	}
 	for {
 		fd := C.NcgimAccept(C.int(nfd))
+		if fd < 0 {
+			break;
+		}
 		f := os.NewFile(uintptr(fd), "socket")
 		fmt.Println("Start Serving")
 		serveRequest(f, handler)

@@ -62,7 +62,8 @@ static int prepareScrachDir(uid_t uid) {
 static int configNcgimExec(const char *path, const char *method, const char *exe, const void *headers, const int uid) {
     //Here the order should be setsid, setregid, setreuid. Once gid is set no other set operation will be permitted
 
-    return prepareScrachDir(uid);
+    if(prepareScrachDir(uid) < 0)
+        return -1;
 
     pid_t sessionId = setsid();
     if(sessionId < 0){
@@ -81,7 +82,7 @@ static int configNcgimExec(const char *path, const char *method, const char *exe
         perror("setreuid at " __FILE__);
         return -1;
     }
-    printf("gid: %d ", getgid());
+    printf("gid: %d \n", getgid());
 
     return 0;
 }
