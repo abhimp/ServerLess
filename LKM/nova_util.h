@@ -47,6 +47,8 @@ void novaSetMonitorPid(pid_t mpid);
 pid_t novaGetMonitorPid(void);
 void novaSetNovaId(nova_id_t nid);
 nova_id_t novaGetNovaId(void);
+int novaSetHomePath(const char *path, size_t count);
+
 void novaStoreOrigSysCall(int x, sys_call_ptr_t *y);
 void novaRedirectSysCall(int x, sys_call_ptr_t *y);
 void novaRestoreSysCall(int x, sys_call_ptr_t *y);

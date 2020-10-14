@@ -7,7 +7,7 @@ novalkm-objs := nova_main.o nova_util.o
 
 .PHONY: clean all add del enable disable
 
-all: nova_syscall.h nova_controller
+all: nova_controller nova_syscall.h
 	make -C /lib/modules/$(shell uname -r)/build/ M=$(PWD) modules
 clean:
 	rm nova_controller || true

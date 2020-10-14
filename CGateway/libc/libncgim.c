@@ -39,8 +39,7 @@ static int ncgimAccept(int ncgiFd, struct sockaddr *restrict address,
         return -1;
     }
     if(getpeername(recvFd, address, address_len) < 0) {
-        close(recvFd);
-        //TODO report back
+        close(recvFd); //Reporting back is not required as this is good enough
         return -1;
     }
     return recvFd;

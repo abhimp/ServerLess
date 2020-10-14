@@ -16,6 +16,7 @@
 #include "kern_version_adjustment.h"
 #include "nova_util.h"
 #include "nova_uapi.h"
+#include "nova_interface.h"
 
 MODULE_LICENSE("GPL");
 
@@ -94,43 +95,9 @@ static void restorSyscallRedirection(void) {
 static ssize_t write(struct file *file, const char *buf, size_t count, loff_t *pos) {
     struct nova_user2lkm myorder;
     if(!buf || !count) return -EINVAL;
-    if(count != sizeof(myorder)) return -EINVAL;
-    if(copy_from_user(&myorder, buf, sizeof(myorder))) return -ENOBUFS;
-    switch(myorder.order) {
-    case NOVA_U2L_ENABLE:
-        {
-            configureSyscallRedirection();
-        }
-        break;
-    case NOVA_U2L_DISABLE:
-        {
-            restorSyscallRedirection();
-        }
-        break;
-    case NOVA_U2L_SET_NOVA_ID:
-        {
-            novaSetNovaId(myorder.nova_id);
-            printk(KERN_ALERT "Added nova filter for nid %d\n", myorder.nova_id);
-        }
-        break;
-    case NOVA_U2L_SET_MONITOR_PID:
-        {
-            novaSetMonitorPid(myorder.monitor_pid);
-            printk(KERN_ALERT "Added nova monitor pid %d\n", myorder.monitor_pid);
-        }
-        break;
-    case NOVA_U2L_SET_NOVA_ID_N_MONITOR_PID:
-        {
-            novaSetNovaId(myorder.nova_id);
-            novaSetMonitorPid(myorder.monitor_pid);
-            printk(KERN_ALERT "Added nova filter for nid %d\n", myorder.nova_id);
-            printk(KERN_ALERT "Added nova monitor pid %d\n", myorder.monitor_pid);
-        }
-        break;
-    default:
-        return -EINVAL;
-    }
-    return sizeof(myorder);
+    if(count < sizeof(myorder)) return -EINVAL;
+    if(redirectionConfigured) return -EBUSY;
+    return novaIsoSetParam(buf, count);
 }
 
 static ssize_t read(struct file *file, char *buf, size_t count, loff_t *pos) {

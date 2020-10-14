@@ -6,7 +6,8 @@
 #include "nova_uapi.h"
 
 int main(int argc, char *argv[]) {
-    struct nova_user2lkm info;
+    char buf[sizeof(struct nova_user2lkm) + sizeof(int32_t)]; //enought buffer for everything
+    struct nova_user2lkm *info = (void *) buf;
 //     FILE *fp;
     int fd;
     if (argc < 2) {
@@ -15,23 +16,27 @@ int main(int argc, char *argv[]) {
     }
 
     if(strcmp(argv[1], "enable") == 0){
-        info.order = NOVA_U2L_ENABLE;
+        info->order = NOVA_U2L_LKM_STATUS;
+        info->len = sizeof(int32_t);
+        *((int32_t *)info->value) = 1;
     }
     else if(strcmp(argv[1], "disable") == 0){
-        info.order = NOVA_U2L_DISABLE;
+        info->order = NOVA_U2L_LKM_STATUS;
+        info->len = sizeof(int32_t);
+        *((int32_t *)info->value) = 0;
     }
     else if(strcmp(argv[1], "setnid") == 0 && argc >= 3){
-        info.order = NOVA_U2L_SET_NOVA_ID;
-        info.nova_id = atoi(argv[2]);
+        info->order = NOVA_U2L_NOVA_ID;
+        info->nova_id = atoi(argv[2]);
     }
     else if(strcmp(argv[1], "setmpid") == 0 && argc >= 3){
-        info.order = NOVA_U2L_SET_MONITOR_PID;
-        info.monitor_pid = atoi(argv[2]);
+        info->order = NOVA_U2L_MONITOR_PID;
+        info->monitor_pid = atoi(argv[2]);
     }
     else if(strcmp(argv[1], "setnidmpid") == 0 && argc >= 4){
-        info.order = NOVA_U2L_SET_NOVA_ID_N_MONITOR_PID;
-        info.nova_id = atoi(argv[2]);
-        info.monitor_pid = atoi(argv[3]);
+        info->order = NOVA_U2L_NOVA_ID_N_MONITOR_PID;
+        info->nova_id = atoi(argv[2]);
+        info->monitor_pid = atoi(argv[3]);
     }
     else {
         printf("Nice try\n");
@@ -43,7 +48,7 @@ int main(int argc, char *argv[]) {
         printf("Cannot open interface file\n");
         return 3;
     }
-    write(fd, &info, sizeof(info));
+    write(fd, buf, sizeof(buf));
     close(fd);
     return 0;
 }

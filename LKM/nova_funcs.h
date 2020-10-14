@@ -32,3 +32,59 @@ static int custom_verify_common(const char *syscall, int syscallnum) {
 //strcmp(current->comm, current->parent->comm)
 #define NOVA_HANDLED_VERIFY_execve(a, b, c) \
     (current->parent->pid == monitorPid && strcmp(current->comm, current->parent->comm) == 0)
+
+static int sanitize_path(char *path) {
+    char *ip, *op, *init;
+
+    for(op=path, ip=path; *ip; ip++, op++) { //strip //+
+        for(;*ip == '/' && ip[1] == '/'; ip++);
+        *op = *ip;
+    }
+    *op = 0;
+
+    op = ip = path;
+    if(*ip == '/') ip++;
+
+    op = ip;
+    init = ip;
+
+    while(*ip) {
+        if(ip[0] == '.' && ip[1] == '/') {
+            ip += 2;
+            continue;
+        }
+        if(ip[0] == '.' && ip[1] == '.' && (ip[2] == '/' || ip[2] == 0)) {
+            if(op != init) {
+                op -= 2;
+                while(op != init && *(op-1) != '/'){
+                    op --;
+                }
+                ip += ip[2] == 0 ? 2 : 3;
+            }
+            else {
+                *op = *ip; op++; ip++;
+                *op = *ip; op++; ip++;
+                *op = *ip; op++; ip++;
+                init = op;
+            }
+            continue;
+        }
+        while(*ip != '/'){
+            *op = *ip; op++; ip++;
+        }
+        *op = *ip; op++; ip++;
+    }
+    *op = 0;
+
+    return 0;
+}
+
+static int validate_path(char *path, mode_t mode) {
+    int ret;
+    if((ret = sanitize_path(path)) < 0)
+        return ret;
+    if(strncmp(path, "/..", 3) == 0) // trying to access outside the location. Although I don't have to bother about it, vfs will take care of it.
+        return -EINVAL;
+    if(strncmp(path, novaIsoHomePath, novaIsoHomePathLen) == 0)
+        return 0;
+}

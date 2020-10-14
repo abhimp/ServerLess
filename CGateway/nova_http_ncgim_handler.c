@@ -96,7 +96,6 @@ static struct nova_control_socket *ncgiCreateWorker(struct nova_handler_enrty *e
     }
     if(pid) {
         close(remotefd);
-//        printf("pid: %d\n", pid);
         struct nova_control_socket *worker = malloc(sizeof(struct nova_control_socket));
         *worker = (struct nova_control_socket) {
             .socktype = NOVA_SOCK_TYPE_CTL,
@@ -114,9 +113,6 @@ static struct nova_control_socket *ncgiCreateWorker(struct nova_handler_enrty *e
         novaNcgiSendError(conn, num); \
         exit(1); \
     }
-
-//    char *cgiPath = conn->path + entry->routelen;
-
 
     localfd = dup2(remotefd, 4); //we want local-fd to be 4
     if(localfd < 0){
@@ -223,6 +219,4 @@ void novaHandleNCGIControlSocket(struct nova_control_socket *ptr) {
     }
     addition(&channel->worker, ptr);
     channel->numPending ++;
-//    ptr->next = channel->worker;
-//    channel->worker = ptr;
 }

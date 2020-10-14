@@ -5,6 +5,8 @@
 static long functionRedirected = 0;
 static long activeRedirection = 0;
 static pid_t monitorPid = 0;
+static char *novaIsoHomePath = NULL; //process directory path will be novaIsoHome/<uid>
+static size_t novaIsoHomePathLen = 0;
 DECLARE_NOVA_ID();
 
 
@@ -45,6 +47,21 @@ void novaSetNovaId(nova_id_t nid) {
 
 nova_id_t novaGetNovaId(void) {
     return GET_NOVA_ID();
+}
+
+int novaSetHomePath(const char *path, size_t count) { //path must be null terminated and absolute
+    if(novaIsoHomePath)
+        kfree(novaIsoHomePath);
+    novaIsoHomePath = kmalloc(count, GFP_USER);
+    if(novaIsoHomePath == NULL)
+        return -EIO;
+    if(copy_from_user(novaIsoHomePath, path, count) > 0) {
+        kfree(novaIsoHomePath);
+        novaIsoHomePath = NULL;
+        return -EIO;
+    }
+    novaIsoHomePathLen = strlen(novaIsoHomePath);
+    return count;
 }
 
 void novaStoreOrigSysCall(int x, sys_call_ptr_t *y) {

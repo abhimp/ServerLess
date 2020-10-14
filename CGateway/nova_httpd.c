@@ -180,8 +180,6 @@ void novaHttpdServer(char *port) {
                 ev.events = EPOLLIN | EPOLLET;
                 ev.data.fd = conn_sock;
                 ev.data.ptr = ptr;
-//                conPoolLen -= 1;
-//                ev.data.ptr = connPool[conPoolLen];
 
                 if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1) {
                     perror("epoll_ctl: conn_sock");

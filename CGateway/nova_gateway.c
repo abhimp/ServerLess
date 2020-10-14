@@ -34,13 +34,9 @@ static void basicHandler(const char *path, const char *method, const void *heade
 static int prepareScrachDir(uid_t uid) {
     if(!SCRATCH_DIRECTORY)
         return 0;
-    pid_t pid = getpid();
-    if(pid < 0) {
-        perror("getpid");
-        return 1;
-    }
+
     char scratchdir[PATH_MAX];
-    snprintf(scratchdir, PATH_MAX, "%s/%d", SCRATCH_DIRECTORY, pid);
+    snprintf(scratchdir, PATH_MAX, "%s/%d", SCRATCH_DIRECTORY, uid);
 
     if(mkdir(scratchdir, 0700) < 0) {
         perror("mkdir at " NOVA_FILE_N_LINE);
