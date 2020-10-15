@@ -10,6 +10,7 @@ struct nova_handler_enrty {
     char *method;
     char *cdir; //required in case of cgi,
     nova_route_handler handler;
+    char const *(*map)[2];
     nova_child_setup childsetter;
 };
 
@@ -17,7 +18,7 @@ struct nova_handler_enrty {
 
 void novaNcgiSendError(nova_httpd_request *conn, int status);
 int novaNcgiGetNewUid();
-void novaNcgiSetupChildExecution(struct nova_handler_enrty *entry, nova_httpd_request *conn, char *cgiPath, int uid);
+void novaNcgiSetupChildExecution(struct nova_handler_enrty *entry, nova_httpd_request *conn, char *cgiPath, char *cgiName, int uid);
 
 struct nova_control_socket *novaHandleWithNCGIS(struct nova_handler_enrty *entry, nova_httpd_request *conn);
 

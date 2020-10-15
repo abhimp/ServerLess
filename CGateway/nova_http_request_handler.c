@@ -80,7 +80,7 @@ int novaNcgiGetNewUid() {
 }
 
 //this function need to after the fork.
-void novaNcgiSetupChildExecution(struct nova_handler_enrty *entry, nova_httpd_request *conn, char *cgiPath, int uid) {
+void novaNcgiSetupChildExecution(struct nova_handler_enrty *entry, nova_httpd_request *conn, char *cgiPath, char *cgiName, int uid) {
 #define SEND_ERROR(st, num) { \
         perror(st " at " NOVA_FILE_N_LINE); \
         novaNcgiSendError(conn, num); \
@@ -95,8 +95,30 @@ void novaNcgiSetupChildExecution(struct nova_handler_enrty *entry, nova_httpd_re
         cgiPath[pathlen] = '/';
         cgiPath[++pathlen] = 0;
     }
-    strcpy(cgiPath + pathlen, conn->path + entry->routelen);
+    if(entry->map) { //FIXME make the search faster
+        char *exe = conn->path + entry->routelen;
+        char *slash = strchr(exe, '/');
+        if(slash)
+            *slash = 0;
+        char found = 0;
+        int i;
+        for(i = 0; entry->map[i][0]; i++) {
+            if(strcmp(entry->map[i][0], exe) == 0) {
+                strcpy(cgiPath + pathlen, entry->map[i][1]);
+                found = 1;
+                break;
+            }
+        }
+        if(slash)
+            *slash = '/';
+        if(!found)
+            SEND_ERROR("Not Found", 407);
+    }
+    else {
+        strcpy(cgiPath + pathlen, conn->path + entry->routelen);
+    }
 
+    strcpy(cgiName, conn->path + entry->routelen);
     if(access(cgiPath, X_OK) < 0) {
         strcat(cgiPath, ".fn");
         if(access(cgiPath, X_OK))
@@ -195,6 +217,26 @@ int novaRegisterHandler(char *route, char *method, enum nova_route_type type, ch
                                             .method = method,
                                             .cdir = cdir,
                                             .handler = handler,
+                                            .childsetter = childsetter
+                                        };
+    handleRegistryCnt ++;
+    return 0;
+}
+
+
+int novaRegisterNcgimHandler(char *route, char *method, char *cdir, char const *(*map)[2], nova_child_setup childsetter) {
+    if(handleRegistryCapa == handleRegistryCnt) {
+        handlerRegistry = realloc(handlerRegistry, (handleRegistryCapa + 32) * sizeof(struct nova_handler_enrty));
+        handleRegistryCapa += 32;
+    }
+    handlerRegistry[handleRegistryCnt] = (struct nova_handler_enrty) {
+                                            .type = NOVA_ROUTE_NCGIM,
+                                            .routelen = strlen(route),
+                                            .route = route,
+                                            .method = method,
+                                            .cdir = cdir,
+//                                            .handler = handler,
+                                            .map = map,
                                             .childsetter = childsetter
                                         };
     handleRegistryCnt ++;

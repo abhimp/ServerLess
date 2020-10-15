@@ -182,6 +182,7 @@ int main(int argc, char *argv[]) {
     novaRegisterHandler("/cgi-python/", NULL, NOVA_ROUTE_NCGIM, "libpython/", NULL, configNcgimExec);
     novaRegisterHandler("/cgi-c/", NULL, NOVA_ROUTE_NCGIM, "libc/examples/", NULL, configNcgimExec);
     novaRegisterHandler("/cgi-go/", NULL, NOVA_ROUTE_NCGIM, "libgo/examples/", NULL, configNcgimExec);
+    novaRegisterNcgimHandler("/cgi-map/", NULL, "libgo/examples/", (nova_handler_map) {{"testmap", "env"}, {"hello", "hellonova"}, {NULL, NULL}}, configNcgimExec);
     novaHttpdServer("9087");
     return 0;
 }

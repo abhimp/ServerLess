@@ -131,7 +131,7 @@ static void setupEnvironmentVariable(nova_httpd_request *conn, char ***env) {
 #undef ADD2ENV
 }
 
-static void executeCgi(struct nova_handler_enrty *entry, nova_httpd_request *conn, char *cgiPath) {
+static void executeCgi(struct nova_handler_enrty *entry, nova_httpd_request *conn, char *cgiPath, char *cgiName) {
 //    char *cgiPath = conn->path + entry->routelen;
 
 //     char *const (*env)[2]; // a pointer to array of length 2 of pointer to const char
@@ -147,7 +147,7 @@ static void executeCgi(struct nova_handler_enrty *entry, nova_httpd_request *con
         SEND_500_ERROR("getcwd");
     }
     close(conn->sockfd);
-    if(execle(cgiPath, cgiPath, NULL, env) < 0) {
+    if(execle(cgiPath, cgiName, NULL, env) < 0) {
         SEND_500_ERROR("execle");
     }
 }
@@ -166,14 +166,15 @@ struct nova_control_socket *novaHandleWithNCGIS(struct nova_handler_enrty *entry
     if(pid) return NULL;
 
     char cgiPath[PATH_MAX];
+    char cgiName[PATH_MAX];
 
-    novaNcgiSetupChildExecution(entry, conn, cgiPath, uid);
+    novaNcgiSetupChildExecution(entry, conn, cgiPath, cgiName, uid);
 
     novaReadNParseHeaders(conn);
 
     printf("current pid: %d\n", getpid());
 
-    executeCgi(entry, conn, cgiPath);
+    executeCgi(entry, conn, cgiPath, cgiName);
 
     exit(0);
 }

@@ -124,8 +124,9 @@ static struct nova_control_socket *ncgiCreateWorker(struct nova_handler_enrty *e
     close(remotefd);
 
     char cgiPath[PATH_MAX];
+    char cgiName[PATH_MAX];
 
-    novaNcgiSetupChildExecution(entry, conn, cgiPath, uid);
+    novaNcgiSetupChildExecution(entry, conn, cgiPath, cgiName, uid);
 
     char FD[20];
     snprintf(FD, 20, "NCGI_FD=%d", localfd);
@@ -135,7 +136,7 @@ static struct nova_control_socket *ncgiCreateWorker(struct nova_handler_enrty *e
             NULL
     };
 
-    if(execle(cgiPath, cgiPath, NULL, env) < 0) {
+    if(execle(cgiPath, cgiName, NULL, env) < 0) {
         perror("execle");
         novaNcgiSendError(conn, 500);
         exit(1);
