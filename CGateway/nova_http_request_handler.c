@@ -29,8 +29,6 @@
 #include "nova_http_request_handler.h"
 
 
-
-
 struct nova_handler_enrty *handlerRegistry = NULL;
 int handleRegistryCnt = 0;
 int handleRegistryCapa = 0;
@@ -102,9 +100,9 @@ void novaNcgiSetupChildExecution(struct nova_handler_enrty *entry, nova_httpd_re
             *slash = 0;
         char found = 0;
         int i;
-        for(i = 0; entry->map[i][0]; i++) {
-            if(strcmp(entry->map[i][0], exe) == 0) {
-                strcpy(cgiPath + pathlen, entry->map[i][1]);
+        for(i = 0; entry->map[i].function; i++) {
+            if(strcmp(entry->map[i].function, exe) == 0) {
+                strcpy(cgiPath + pathlen, entry->map[i].exe);
                 found = 1;
                 break;
             }
@@ -224,7 +222,7 @@ int novaRegisterHandler(char *route, char *method, enum nova_route_type type, ch
 }
 
 
-int novaRegisterNcgimHandler(char *route, char *method, char *cdir, char const *(*map)[2], nova_child_setup childsetter) {
+int novaRegisterNcgimHandler(char *route, char *method, char *cdir, struct nova_handler_map map[], nova_child_setup childsetter) {
     if(handleRegistryCapa == handleRegistryCnt) {
         handlerRegistry = realloc(handlerRegistry, (handleRegistryCapa + 32) * sizeof(struct nova_handler_enrty));
         handleRegistryCapa += 32;

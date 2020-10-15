@@ -10,7 +10,8 @@ struct nova_handler_enrty {
     char *method;
     char *cdir; //required in case of cgi,
     nova_route_handler handler;
-    char const *(*map)[2];
+//    char const *(*map)[2];
+    struct nova_handler_map *map;
     nova_child_setup childsetter;
 };
 
