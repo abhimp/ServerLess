@@ -1,4 +1,5 @@
 #define NOVA_REDIRECT_SOURCE
+#include <linux/slab.h>
 #include "kern_version_adjustment.h"
 #include "nova_util.h"
 
