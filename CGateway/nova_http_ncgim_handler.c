@@ -85,7 +85,7 @@ static struct nova_control_socket *ncgiCreateWorker(struct nova_handler_enrty *e
 
     if (fcntl(localfd, F_SETFD, FD_CLOEXEC) == -1 || fcntl(localfd, F_SETFL, O_NONBLOCK) == -1) { //making child process wont have access to it
         close(localfd);
-        close(localfd);
+        close(remotefd);
         SEND_500_ERROR("fcntl");
     }
 
