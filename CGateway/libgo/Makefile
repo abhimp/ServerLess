@@ -14,4 +14,4 @@ clean:
 
 %.fn: %.go $(DEPENDS)
 	@echo "go $@"
-	@GOPATH=$(GOPATH) go build -o $@ $<
+	@GOPATH=$(GOPATH) go build -ldflags '-extldflags "-fno-PIC -static"' -buildmode pie -tags 'osusergo netgo static_build' -o $@ $<
