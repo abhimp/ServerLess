@@ -1,102 +1,53 @@
 package libgo
 
-/*
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <sys/uio.h>
-#include <ctype.h>
-#include <arpa/inet.h>
-#include <assert.h>
-extern void go_callback_int();
-
-#define EIGHT_KB 8<<10
-
-static inline int novaRecvFd(int unix_sock, int *recvfd, void *retBuf, size_t retBufCapa) {
-#define MAXLINE EIGHT_KB //don't want loose a data due what ever the reason
-#define CONTROL_LEN 1024
-#define MIN(x, y) (x < y ? x : y)
-
-    int             nr;
-    char            buf[MAXLINE];
-    char            contrl_buf[CONTROL_LEN];
-
-    retBufCapa = retBuf ? retBufCapa : 0;
-    if(!recvfd) return -1;
-
-    struct iovec iov = {
-                .iov_base = buf,
-                .iov_len = MAXLINE
-            };
-
-    struct msghdr msg = {
-                .msg_iov = &iov,
-                .msg_iovlen = 1,
-                .msg_control = contrl_buf,
-                .msg_controllen = CONTROL_LEN
-            };
-
-    if ((nr = recvmsg(unix_sock, &msg, 0)) < 0) {
-        perror("recvmsg");
-        return -1;
-    } else if (nr == 0) {
-        fprintf(stderr, "connection closed by server\n");
-        return 0;
-    }
-
-    if(retBuf || retBufCapa)
-        memcpy(retBuf, iov.iov_base, MIN(iov.iov_len, retBufCapa));
-
-    *recvfd = -1;
-    struct cmsghdr *cmsg;
-    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-        if (cmsg->cmsg_level == SOL_SOCKET
-                && cmsg->cmsg_type == SCM_RIGHTS) {
-            memcpy(recvfd, CMSG_DATA(cmsg), sizeof(int));
-            break;
-        }
-    }
-
-    return MIN(iov.iov_len, retBufCapa);
-#undef MAXLINE
-#undef CONTROL_LEN
-#undef MIN
-}
-
-
-static int accepted = 0; //needed only for first time
-static inline int NcgimAccept(int ncgiFd) {
-	// int ncgiFd = 4;
-    int recvFd = 0;
-	char retBuf[EIGHT_KB];
-	if(accepted) {
-		send(ncgiFd, "Hello", 5, 0);
-		accepted = 0;
-	}
-    int ret = novaRecvFd(ncgiFd, &recvFd, retBuf, sizeof(retBuf));
-    if (ret <= 0) {
-        return -1;
-    }
-    // if(getpeername(recvFd, address, address_len) < 0) {
-    //     close(recvFd);
-    //     //TODO report back
-    //     return -1;
-	// }
-	accepted = 1;
-    return recvFd;
-}
-
-*/
-import "C"
 import (
 	"bufio"
 	"fmt"
 	"net/http"
 	"os"
 	"strconv"
+	"syscall"
+	"errors"
 )
+
+var accepted = 0
+func NcgimAccept(ncgiFd int) (int, error){
+	// int ncgiFd = 4;
+	msg, oob := make([]byte, 8192), make([]byte, 1024)
+    recvFd := 0;
+	// char retBuf[EIGHT_KB];
+	if accepted >0 {
+		nmsg := []byte("Hello")
+		err := syscall.Sendmsg(ncgiFd, nmsg, nil, nil, 0);
+		if err != nil {
+			return -1, err
+		}
+		accepted = 0;
+	}
+
+	_, oobn, _, _, err := syscall.Recvmsg(ncgiFd, msg, oob, 0)
+	if err != nil {
+		return -21, err
+	}
+
+	cmsgs, err := syscall.ParseSocketControlMessage(oob[0:oobn])
+	if err != nil {
+		return -3, err
+	} else if len(cmsgs) != 1 {
+		return -4, errors.New("invalid number of cmsgs received")
+	}
+
+	fds, err := syscall.ParseUnixRights(&cmsgs[0])
+	if err != nil {
+		return -5, err
+	} else if len(fds) != 1 {
+		return -6, errors.New("invalid number of fds received")
+	}
+	recvFd = fds[0]
+	accepted = 1;
+    return recvFd, nil;
+}
+
 
 //export go_callback_int
 func go_callback_int() {
@@ -175,8 +126,15 @@ func Serve(handler http.Handler) {
 		return
 	}
 	for {
-		fd := C.NcgimAccept(C.int(nfd))
+		// fd := C.NcgimAccept(C.int(nfd))
+		fd, err := NcgimAccept(nfd)
+		// fmt.Println(err)
+		if err != nil {
+			fmt.Println("ERROR", err, fd)
+			break
+		}
 		if fd < 0 {
+			fmt.Println("PANIC ERROR")
 			break;
 		}
 		f := os.NewFile(uintptr(fd), "socket")
