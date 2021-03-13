@@ -135,6 +135,34 @@ static struct nova_control_socket *ncgiCreateWorker(struct nova_handler_enrty *e
             FD,
             NULL
     };
+    // int cwdfd = open("/proc/nova_cwd", O_RDWR);
+    // if(!cwdfd) {
+    //     perror("open nova_cwd");
+    //     novaNcgiSendError(conn, 500);
+    //     exit(1);
+    // }
+    // if(cwdfd != 3) {
+    //     cwdfd = dup2(cwdfd, 3);
+    //     if(cwdfd < 0) {
+    //         perror("dup2 cwdfd");
+    //         novaNcgiSendError(conn, 500);
+    //         exit(1);
+    //     }
+    // }
+    // char cwd[50];
+    // if (getcwd(cwd, sizeof(cwd)) != NULL) {
+    //     printf("Current working dir: %s\n", cwd);
+    //     int ret = write(cwdfd, cwd, strlen(cwd)+1);
+    //     if(ret < 0) {
+    //         perror("write cwd");
+    //         novaNcgiSendError(conn, 500);   
+    //         exit(1);
+    //     }
+    // } else {
+    //     perror("getcwd() error");
+    //     novaNcgiSendError(conn, 500);   
+    //     exit(1);
+    // }
 
     if(execle(cgiPath, cgiName, NULL, env) < 0) {
         perror("execle");

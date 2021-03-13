@@ -1,0 +1,22 @@
+examples: 
+	hellonova
+		clone: Unblocked
+	env:
+		execve: Unblocked to enable execle
+
+hotel-reservation:
+	frontend:
+		
+		Error - frontend: error while loading shared libraries: libpthread.so.0: cannot open shared object file: Operation not permitted
+			fixed by updating libgo + static compilation
+		
+		open libgo/hotelReservation/services/frontend/static/index.html: operation not permitted
+			Unblock open system call - DID NOT FIX ERROR
+			Unblock openat
+		
+		socket: 41,socket,sys_socket,"asmlinkage long sys_socket(int domain, int type, int protocol);",Partial,TRUE,NET,Only stream socket is allowed,net/socket.c
+			socket changed to enable POST request generation
+		
+		setsockopt: Post "http://localhost:9087/cgi-hotel-reservation-api/search/nearby"
+
+		read: Post "http://localhost:9087/cgi-hotel-reservation-api/search/nearby": dial tcp: lookup localhost on [::1]:53: read udp [::1]:36157->[::1]:53: read: 	connection refused: also fixed by enabling openat

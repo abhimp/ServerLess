@@ -2,7 +2,7 @@
 #include <linux/module.h>
 #include <linux/proc_fs.h>
 #include <linux/uaccess.h>
-
+#include <linux/slab.h>
 // #include <linux/module.h>
 #include <linux/kallsyms.h>
 // #include <linux/kernel.h>
@@ -147,15 +147,81 @@ static struct proc_dir_entry *init_procfile(void) {
 
 static void remove_procfile(void) {
     remove_proc_entry(LKM_INTERFACE_FILE_PROC, NULL);
+    // remove_proc_entry("nova_cwd", NULL);
 }
+
+
+
+static struct current_working_directory {
+    bool written;
+    char *path;
+};
+
+static int open_cwd(struct inode *inode, struct file* file) {
+    printk(KERN_DEBUG "In open\n");
+    return 0;
+}
+
+static ssize_t write_cwd(struct file *file, const char *buf, size_t count, loff_t *pos) {
+    if(file->private_data)
+        kfree(file->private_data);
+    file->private_data = kmalloc(sizeof(struct current_working_directory), GFP_KERNEL);
+    ((struct current_working_directory *)(file->private_data))->written = true;
+    int i;
+    ((struct current_working_directory *)(file->private_data))->path = kmalloc(50, GFP_KERNEL);
+    for(i = 0; i<strlen(buf); i++)
+        ((struct current_working_directory *)(file->private_data))->path[i] = buf[i];
+    ((struct current_working_directory *)(file->private_data))->path[strlen(buf)] = '\0';
+    printk(KERN_INFO "Wrote %s to private_data\n", ((struct current_working_directory *)(file->private_data))->path);
+    return strlen(buf) + 1;
+}
+
+static ssize_t read_cwd(struct file *file, char *buf, size_t count, loff_t *pos) {
+    printk(KERN_INFO "Read %s from private_data\n", ((struct current_working_directory *)(file->private_data))->path);
+    return 0;
+}
+
+static int release(struct inode *inode, struct file *file) {
+    if(file->private_data)
+        kfree(file->private_data);
+    return 0;
+}
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,7,0)
+static struct file_operations file_ops;
+static struct proc_dir_entry *init_cwd_procfile(void) {
+    struct proc_dir_entry *entry;
+    entry = proc_create("nova_cwd", 0666, NULL, &file_ops);
+    if(!entry) return entry;
+    file_ops.owner = THIS_MODULE;
+    file_ops.write = write_cwd;
+    file_ops.read = read_cwd;
+    file_ops.release = release;
+    return entry;
+}
+#else
+static struct proc_ops file_ops;
+static struct proc_dir_entry *init_cwd_procfile(void) {
+    struct proc_dir_entry *entry;
+    entry = proc_create("nova_cwd", 0666, NULL, &file_ops);
+    if(!entry) return entry;
+    file_ops.proc_write = write_cwd;
+    file_ops.proc_read = read_cwd;
+    file_ops.release = release;
+    return entry;
+}
+#endif
 
 
 static int hello_init(void)
 {
     struct proc_dir_entry *entry;
+    // struct proc_dir_entry *cwd_entry;
     entry = init_procfile();
     if(!entry) return -ENOENT;
-
+    // cwd_entry = init_cwd_procfile();
+    // if(!cwd_entry)
+    //     return -ENOENT;
     printk(KERN_ALERT "Hello, world\n");
 
 //     configureSyscallRedirection();

@@ -183,6 +183,25 @@ int main(int argc, char *argv[]) {
     novaRegisterHandler("/cgi-c/", NULL, NOVA_ROUTE_NCGIM, "libc/examples/", NULL, configNcgimExec);
     novaRegisterHandler("/cgi-go/", NULL, NOVA_ROUTE_NCGIM, "libgo/examples/", NULL, configNcgimExec);
     novaRegisterNcgimHandler("/cgi-map/", NULL, "libgo/examples/", (struct nova_handler_map []) {{"testmap", "env"}, {"hello", "hellonova"}, {NULL, NULL}}, configNcgimExec);
+    
+    novaRegisterNcgimHandler("/cgi-hotel-reservation/", NULL, "libgo/hotelReservation/services/frontend", 
+        (struct nova_handler_map []) {
+            {"frontend", "frontend"}, 
+            {NULL, NULL}
+        }, 
+        configNcgimExec);
+    novaRegisterNcgimHandler("/cgi-hotel-reservation-api/", NULL, "libgo/hotelReservation/services/", 
+        (struct nova_handler_map []) {
+            {"geo", "geo/geo"},
+            {"user", "user/user"}, 
+            {"rate", "rate/rate"}, 
+            {"profile", "profile/profile"}, 
+            {"reservation", "reservation/reservation"}, 
+            {"search", "search/search"}, 
+            {"recommendation", "recommendation/recommendation"}, 
+            {NULL, NULL}
+        }, 
+        configNcgimExec);
     novaHttpdServer("9087");
     return 0;
 }

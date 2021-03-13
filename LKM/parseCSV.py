@@ -31,13 +31,15 @@ def parse(row, index):
     name = row[1]
     syscall = row[2]
     bind = row[5]=="TRUE"
+    unblocked = row[4] == "Unblock"
     #print(argsName)
-    return name, syscall, bind, (ret, funcName, args, argsName)
+    return name, syscall, bind, (ret, funcName, args, argsName, unblocked)
     #defineMySystemCall()
 
-def printMySyscallDefinition(ret, name, syscall, args, argsName):
+def printMySyscallDefinition(ret, name, syscall, args, argsName, unblocked):
     printBuf("//"+"="*30)
     printBuf(f"#ifdef __NR_{syscall}")
+    printBuf(f"#define NOVA_BASE_UNBLOCKED_{syscall}")
     printBuf("static asmlinkage", ret)
     printBuf(f"{name}(" + ", ".join(args) + ") {")
     printBuf("\t" f"{ret} ret = -EPERM;")
@@ -56,7 +58,9 @@ def printMySyscallDefinition(ret, name, syscall, args, argsName):
 
     printBuf("")
     printBuf("\t" "if(0) {") #balanced bracket always looks good
-    printBuf(f"#ifdef NOVA_BASE_VERIFY_{syscall}")
+    printBuf(f"#ifdef NOVA_BASE_UNBLOCKED_{syscall}")
+    printBuf("\t" "}", "else if(1) {")
+    printBuf(f"#elif defined NOVA_BASE_VERIFY_{syscall}")
     printBuf("\t" "}", f"else if(NOVA_BASE_VERIFY_{syscall}(" + ", ".join(argsName) + ")) {")
     printBuf(f"#elif defined NOVA_BASE_VERIFY") #this is common. no argument will be provided
     printBuf("\t" "}", f"else if(NOVA_BASE_VERIFY({syscall}))" " {")
@@ -102,11 +106,11 @@ def generateSourceFile(fileName, parsedSysCalls):
     startBuf()
     for syscall in parsedSysCalls:
         name, syscall, bind, call = syscall
-        ret, funcName, args, argsName = call
+        ret, funcName, args, argsName, unblocked = call
         if not bind: continue
         newname = "nova_" + funcName
         sysCallsMap["__NR_"+name] = newname;
-        printMySyscallDefinition(ret, newname, name, args, argsName)
+        printMySyscallDefinition(ret, newname, name, args, argsName, unblocked)
     definition = endBuf()
 
     startBuf()
@@ -158,3 +162,4 @@ if __name__ == "__main__":
         fname = sys.argv[1]
     parsedSysCalls = parseSysCallCsv(fname)
     generateFiles(parsedSysCalls)
+

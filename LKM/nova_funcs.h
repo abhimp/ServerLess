@@ -8,6 +8,7 @@
  *
  * All the functions recv same number of argument as the system call. verification macros are expected to be return 0 or 1 only.
  */
+// #include <linux/fdtable.h>
 
 #define GET_CURRENT_EGID() current_egid()
 
@@ -32,6 +33,71 @@ static int custom_verify_common(const char *syscall, int syscallnum) {
 //strcmp(current->comm, current->parent->comm)
 #define NOVA_HANDLED_VERIFY_execve(a, b, c) \
     (current->parent->pid == monitorPid && strcmp(current->comm, current->parent->comm) == 0)
+
+
+// custom kernel loggers for syscalls
+#define NOVA_PRE_PROC_openat(dirfd, pathname, flags, mode) \
+    printk(KERN_WARNING "syscall: openat, dirfd: %d, pathname: %s, flags: %d, mode: %o\n", dirfd, pathname, flags, mode)
+
+
+// #define NOVA_PRE_PROC_openat32(dirfd, pathname, flags, mode) {\
+//     // int ret;\
+//     // if((ret = print_filename(dirfd)) != 0) printk(KERN_WARNING "error in print_filename %d\n", ret);\
+//     printk(KERN_WARNING "syscall: openat, dirfd: %d, pathname: %s, flags: %d, mode: %o\n", dirfd, pathname, flags, mode);\
+// }
+
+
+#define NOVA_BASE_VERIFY_openat(dirfd, pathname, flags, mode) 1
+
+#define NOVA_PRE_PROC_clone(fn, stack, flags, arg, arg2) \
+    printk(KERN_WARNING "syscall: clone, fn: %ld, stack: %ld, flags: %u, arg: \n", fn, stack, flags)
+
+#define NOVA_BASE_VERIFY_clone(fn, stack, flags, arg, arg2) 1
+
+
+#define NOVA_PRE_PROC_socket(domain, type, protocol) \
+    printk(KERN_WARNING "syscall: socket, domain: %d, type: %d, protocol: %d\n", domain, type, protocol)
+
+#define NOVA_BASE_VERIFY_socket(domain, type, protocol) 1
+
+
+/*static int print_filename(int fd) {
+    char *tmp;
+    char *pathname;
+    struct file *file;
+    struct path *path;
+    struct files_struct *files = current->files;
+    spin_lock(&files->file_lock);
+    file = fcheck_files(files, fd);
+    if (!file) {
+        spin_unlock(&files->file_lock);
+        return -ENOENT;
+    }
+
+    path = &file->f_path;
+    path_get(path);
+    spin_unlock(&files->file_lock);
+
+    tmp = (char *)__get_free_page(GFP_KERNEL);
+
+    if (!tmp) {
+        path_put(path);
+        return -ENOMEM;
+    }
+
+    pathname = d_path(path, tmp, PAGE_SIZE);
+    path_put(path);
+
+    if (IS_ERR(pathname)) {
+        free_page((unsigned long)tmp);
+        return PTR_ERR(pathname);
+    }
+
+    printk(KERN_WARNING "fd %d's filename: %s\n", fd, pathname);
+
+    free_page((unsigned long)tmp);
+    return 0;
+}*/
 
 static int sanitize_path(char *path) {
     char *ip, *op, *init;
