@@ -8,10 +8,10 @@ novalkm-objs := nova_main.o nova_util.o
 .PHONY: clean all add del enable disable
 
 all: nova_controller nova_syscall.h
-	make -C /lib/modules/$(shell uname -r)/build/ M=$(PWD) modules
+	make -C /lib/modules/$(shell uname -r)/build/ M=$(shell pwd) modules
 clean:
 	rm nova_controller || true
-	make -C /lib/modules/$(shell uname -r)/build/ M=$(PWD) clean
+	make -C /lib/modules/$(shell uname -r)/build/ M=$(shell pwd) clean
 
 nova_syscall.h: parseCSV.py syscall.csv
 	python3.7 parseCSV.py syscall.csv
