@@ -1,10 +1,10 @@
 #,Name,Entry point,Kernelspace Sigature,Block,Redirection,Category,Remark,Implementation
 0,read,sys_read,"asmlinkage long sys_read(unsigned int fd, char __user *buf, size_t count);",Unblock,FALSE,FS,,fs/read_write.c
 1,write,sys_write,"asmlinkage long sys_write(unsigned int fd, const char __user *buf, size_t count);",Unblock,FALSE,FS,,fs/read_write.c
-2,open,sys_open,"asmlinkage long sys_open(const char __user *filename, int flags, umode_t mode);",Block,TRUE,FS,,fs/open.c
+2,open,sys_open,"asmlinkage long sys_open(const char __user *filename, int flags, umode_t mode);",Block,FALSE,FS,,fs/open.c
 3,close,sys_close,asmlinkage long sys_close(unsigned int fd);,Unblock,FALSE,FS,,fs/open.c
 4,stat,sys_newstat,"asmlinkage long sys_newstat(const char __user *filename, struct stat __user *statbuf);",Block,TRUE,FS,,fs/stat.c
-5,fstat,sys_newfstat,"asmlinkage long sys_newfstat(unsigned int fd, struct stat __user *statbuf);",Block,TRUE,FS,,fs/stat.c
+5,fstat,sys_newfstat,"asmlinkage long sys_newfstat(unsigned int fd, struct stat __user *statbuf);",Block,FALSE,FS,,fs/stat.c
 6,lstat,sys_newlstat,"asmlinkage long sys_newlstat(const char __user *filename, struct stat __user *statbuf);",Block,TRUE,FS,,fs/stat.c
 7,poll,sys_poll,"asmlinkage long sys_poll(struct pollfd __user *ufds, unsigned int nfds, int timeout);",Unblock,FALSE,FS,,fs/select.c
 8,lseek,sys_lseek,"asmlinkage long sys_lseek(unsigned int fd, off_t offset, unsigned int whence);",Unblock,FALSE,FS,,fs/read_write.c
@@ -21,7 +21,7 @@
 19,readv,sys_readv,"asmlinkage long sys_readv(unsigned long fd, const struct iovec __user *vec, unsigned long vlen);",Unblock,FALSE,FS,,fs/read_write.c
 20,writev,sys_writev,"asmlinkage long sys_writev(unsigned long fd, const struct iovec __user *vec, unsigned long vlen);",Unblock,FALSE,FS,,fs/read_write.c
 21,access,sys_access,"asmlinkage long sys_access(const char __user *filename, int mode);",Partial,TRUE,FS,signal whether a file is accessible or not,fs/open.c
-22,pipe,sys_pipe,asmlinkage long sys_pipe(int __user *fildes);,Unblock,TRUE,IPC,Pipe create a two fd for a single process. Cannot open any file or socket,fs/pipe.c
+22,pipe,sys_pipe,asmlinkage long sys_pipe(int __user *fildes);,Unblock,FALSE,IPC,Pipe create a two fd for a single process. Cannot open any file or socket,fs/pipe.c
 23,select,sys_select,"asmlinkage long sys_select(int n, fd_set __user *inp, fd_set __user *outp, fd_set __user *exp, struct __kernel_old_timeval __user *tvp);",Unblock,FALSE,FS,,fs/select.c
 24,sched_yield,sys_sched_yield,asmlinkage long sys_sched_yield(void);,Unblock,FALSE,PROC,,kernel/sched/core.c
 25,mremap,sys_mremap,"asmlinkage long sys_mremap(unsigned long addr, unsigned long old_len, unsigned long new_len, unsigned long flags, unsigned long new_addr);",YTD,FALSE,MM,,mm/mmap.c
@@ -40,7 +40,7 @@
 38,setitimer,sys_setitimer,"asmlinkage long sys_setitimer(int which, struct __kernel_old_itimerval __user *value, struct __kernel_old_itimerval __user *ovalue);",Unblock,FALSE,PROC,,kernel/itimer.c
 39,getpid,sys_getpid,asmlinkage long sys_getpid(void);,YTD,FALSE,PROC,,kernel/sys.c
 40,sendfile,sys_sendfile64,"asmlinkage long sys_sendfile64(int out_fd, int in_fd, loff_t __user *offset, size_t count);",Unblock,FALSE,NET,Not required FD is restricted,fs/read_write.c
-41,socket,sys_socket,"asmlinkage long sys_socket(int domain, int type, int protocol);",Partial,TRUE,NET,Only stream socket is allowed,net/socket.c
+41,socket,sys_socket,"asmlinkage long sys_socket(int domain, int type, int protocol);",Unblock,TRUE,NET,Only stream socket is allowed,net/socket.c
 42,connect,sys_connect,"asmlinkage long sys_connect(int fd, struct sockaddr __user *addr, int addrlen);",Unblock,FALSE,NET,,net/socket.c
 43,accept,sys_accept,"asmlinkage long sys_accept(int sockfd, struct sockaddr __user *addr, int __user *addrlen);",Block,TRUE,NET,,net/socket.c
 44,sendto,sys_sendto,"asmlinkage long sys_sendto(int socket, void __user *message, size_t length, unsigned flags, struct sockaddr __user * dest_addr, int dest_len);",Unblock,FALSE,NET,,net/socket.c
@@ -53,12 +53,12 @@
 51,getsockname,sys_getsockname,"asmlinkage long sys_getsockname(int socket, struct sockaddr __user *addr, int __user *addrlen);",Unblock,FALSE,NET,,net/socket.c
 52,getpeername,sys_getpeername,"asmlinkage long sys_getpeername(int socket, struct sockaddr __user *addr, int __user *addrlen);",Unblock,FALSE,NET,,net/socket.c
 53,socketpair,sys_socketpair,"asmlinkage long sys_socketpair(int domain, int type, int protocol, int __user *socket_vector);",Block,TRUE,NET,Used to create local socket,net/socket.c
-54,setsockopt,sys_setsockopt,"asmlinkage long sys_setsockopt(int fd, int level, int optname, char __user *optval, int optlen);",Block,TRUE,NET,,net/socket.c
+54,setsockopt,sys_setsockopt,"asmlinkage long sys_setsockopt(int fd, int level, int optname, char __user *optval, int optlen);",Block,FALSE,NET,,net/socket.c
 55,getsockopt,sys_getsockopt,"asmlinkage long sys_getsockopt(int fd, int level, int optname, char __user *optval, int __user *optlen);",Unblock,FALSE,NET,,net/socket.c
-56,clone,sys_clone,"asmlinkage long sys_clone(unsigned long fn, unsigned long stack, int __user *flags, unsigned long arg, int __user *arg2);",Block,TRUE,PROC,,kernel/fork.c
+56,clone,sys_clone,"asmlinkage long sys_clone(unsigned long fn, unsigned long stack, int __user *flags, unsigned long arg, int __user *arg2);",Unblock,TRUE,PROC,,kernel/fork.c
 57,fork,sys_fork,asmlinkage long sys_fork(void);,Block,TRUE,PROC,,kernel/fork.c
 58,vfork,sys_vfork,asmlinkage long sys_vfork(void);,Block,TRUE,PROC,,kernel/fork.c
-59,execve,sys_execve,"asmlinkage long sys_execve(const char __user *filename, const char __user *const __user *argv, const char __user *const __user *envp);",Block,TRUE,PROC,,fs/exec.c
+59,execve,sys_execve,"asmlinkage long sys_execve(const char __user *filename, const char __user *const __user *argv, const char __user *const __user *envp);",Block,FALSE,PROC,,fs/exec.c
 60,exit,sys_exit,asmlinkage long sys_exit(int error_code);,Unblock,TRUE,PROC,,kernel/exit.c
 61,wait4,sys_wait4,"asmlinkage long sys_wait4(pid_t pid, int __user *stat_addr, int options, struct rusage __user *ru);",Unblock,FALSE,PROC,,kernel/exit.c
 62,kill,sys_kill,"asmlinkage long sys_kill(pid_t pid, int sig);",Partial,TRUE,PROC,,kernel/signal.c
@@ -256,7 +256,7 @@
 254,inotify_add_watch,sys_inotify_add_watch,"asmlinkage long sys_inotify_add_watch(int fd, const char __user *path, u32 mask);",Block,TRUE,FS,,fs/notify/inotify/inotify_user.c
 255,inotify_rm_watch,sys_inotify_rm_watch,"asmlinkage long sys_inotify_rm_watch(int fd, __s32 wd);",Block,TRUE,FS,,fs/notify/inotify/inotify_user.c
 256,migrate_pages,sys_migrate_pages,"asmlinkage long sys_migrate_pages(pid_t pid, unsigned long maxnode, const unsigned long __user *from, const unsigned long __user *to);",YTD,TRUE,MM,,mm/mempolicy.c
-257,openat,sys_openat,"asmlinkage long sys_openat(int dfd, const char __user *filename, int flags, umode_t mode);",Block,TRUE,FS,,fs/open.c
+257,openat,sys_openat,"asmlinkage long sys_openat(int dfd, const char __user *filename, int flags, umode_t mode);",Unblock,TRUE,FS,,fs/open.c
 258,mkdirat,sys_mkdirat,"asmlinkage long sys_mkdirat(int dfd, const char __user * pathname, umode_t mode);",Block,TRUE,FS,,fs/namei.c
 259,mknodat,sys_mknodat,"asmlinkage long sys_mknodat(int dfd, const char __user * filename, umode_t mode, unsigned dev);",Block,TRUE,FS,,fs/namei.c
 260,fchownat,sys_fchownat,"asmlinkage long sys_fchownat(int dfd, const char __user *filename, uid_t user, gid_t group, int flag);",Block,TRUE,FS,,fs/open.c

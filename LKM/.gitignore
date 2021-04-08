@@ -54,3 +54,5 @@ dkms.conf
 nova_syscall.h
 nova_controller
 *.log
+.cache.mk
+nova_util.o.ur-safe

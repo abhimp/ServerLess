@@ -11,4 +11,6 @@ int novaSetNidMpid(nova_id_t nid, pid_t mpid);
 int novaEnable();
 
 int novaDisable();
+
+int novaSetScratchDir(char scratchdir[]);
 #endif

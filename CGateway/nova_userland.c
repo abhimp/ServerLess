@@ -8,7 +8,10 @@
 
 static int writeToFile(void *info, size_t infoLen) {
     int fd;
-    if(!info) return -1;
+    if(!info) {
+        printf("Info is null nova_userland\n");
+        return -1;
+    }
     fd = open("/proc/" LKM_INTERFACE_FILE_PROC, O_WRONLY);
     if(fd <= 0) {
         printf("Cannot open interface file\n");
@@ -59,5 +62,20 @@ int novaDisable() {
     info->order = NOVA_U2L_LKM_STATUS;
     info->len = sizeof(int32_t);
     *((int32_t *)info->value) = 0;
+    return writeToFile(buf, sizeof(buf));
+}
+
+int novaSetScratchDir(char scratchdir[]) {
+    int i;
+    char buf[sizeof(struct nova_user2lkm) + strlen(scratchdir) + 1];
+    struct nova_user2lkm *info = (void *)buf;
+    info->order = NOVA_U2L_NOVA_HOME;
+    info->len = strlen(scratchdir) + 1;
+    for(i = 0; i<strlen(scratchdir) + 1; i++)
+        buf[sizeof(struct nova_user2lkm) + i] = scratchdir[i];
+    // buf[strlen(buf)-1] = '\0';
+    char *path = info->value;
+
+    printf("Sending %s from nova userland with size %ld\n", path, strlen(scratchdir) + 1);
     return writeToFile(buf, sizeof(buf));
 }
