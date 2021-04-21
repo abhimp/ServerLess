@@ -42,10 +42,14 @@ static int custom_verify_common(const char *syscall, int syscallnum) {
     if(dirfd != 100 && ((ret = print_filename(dirfd)) != 0)) printk(KERN_WARNING "error in print_filename %d\n", ret);\
 */
 #define NOVA_PRE_PROC_openat(dirfd, pathname, flags, mode) {\
-    int ret;\
+    int ret, valid;\
     char full_path[200];\
     ret = get_full_path(dirfd, pathname, full_path);\
     printk(KERN_WARNING "syscall: openat, dirfd: %d, pathname: %s, flags: %d, mode: %o\n", dirfd, pathname, flags, mode);\
+    printk(KERN_WARNING "pid: %d", current->pid);\
+    printk(KERN_WARNING "full_path: %s\n", full_path);\
+    valid = validate_path(full_path, mode);\
+    printk(KERN_WARNING "validate_path returned %d\n", valid);\
 }
 
 /*
@@ -82,7 +86,7 @@ static int print_filename(int fd) {
         free_page((unsigned long)tmp);
         return PTR_ERR(pathname);
     }
-    printk(KERN_WARNING "fd %d's filename: %s\n", fd, pathname);
+    // printk(KERN_WARNING "fd %d's filename: %s\n", fd, pathname);
     free_page((unsigned long)tmp);
     return 0;
 }
@@ -90,7 +94,6 @@ static int print_filename(int fd) {
 static int get_pwd_as_string(char pwd[]) {
     char *tmp;
     char *pathname;
-    int i;
     
     struct path path;
     get_fs_pwd(current->fs, &path);
@@ -106,7 +109,7 @@ static int get_pwd_as_string(char pwd[]) {
         return PTR_ERR(pathname);
     }
     
-    printk("pwd is: %s\n", pathname);
+    // printk("pwd is: %s\n", pathname);
     strcpy(&pwd[0], pathname);
     free_page((unsigned long)tmp);
 
@@ -141,7 +144,7 @@ static int get_full_path(int fd, const char *rel_path, char *full_path) {
         for(i = 0; i<strlen(rel_path); i++)
             full_path[i + strlen(pwd) + 1] = rel_path[i];
         full_path[strlen(rel_path) + strlen(pwd) + 1] = '\0';
-        printk(KERN_WARNING "full_path: %s\n", full_path);
+        // printk(KERN_WARNING "full_path: %s\n", full_path);
         return 0;
     }
     files = current->files;
@@ -171,7 +174,7 @@ static int get_full_path(int fd, const char *rel_path, char *full_path) {
     for(i = 0; i<strlen(rel_path); i++)
         full_path[i + strlen(pathname) + 1] = rel_path[i];
     full_path[strlen(rel_path) + strlen(pathname) + 1] = '\0';
-    printk(KERN_WARNING "full_path: %s\n", full_path);
+    // printk(KERN_WARNING "full_path: %s\n", full_path);
     free_page((unsigned long)tmp);
     return 0;
 }
@@ -222,13 +225,75 @@ static int sanitize_path(char *path) {
 
     return 0;
 }
+int simplify_path(char* path) {
+    #define STATE_WRITE 0
+    #define STATE_SLASH 1
+    #define STATE_DOT 2
+    char state = STATE_SLASH;
+    char c; int ri = 1; int wi = 1; // read index; write index
+    while ((c = path[ri]) != '\0') {
+        if (state == STATE_WRITE) {
+            // STATE_WRITE
+            if (c == '/') {
+                state = STATE_SLASH;
+            }
+            path[wi] = path[ri];
+            ri++; wi++; continue;
+            // STATE_WRITE END
+        } else if (state == STATE_SLASH) {
+            // STATE_SLASH
+            if (c == '/') {
+                ri++; continue;
+            }
+            if (c == '.') {
+                state = STATE_DOT;
+                ri++; continue;
+            }
+            state = STATE_WRITE;
+            path[wi] = path[ri];
+            ri++; wi++; continue;
+            // STATE_SLASH END
+        }
+        // STATE_DOT
+        if (c == '/') {
+            state = STATE_SLASH;
+            ri++; continue;
+        }
+        if (c == '.') {
+            if (path[ri + 1] != '/' && path[ri + 1] != '\0') {
+                state = STATE_WRITE;
+                ri -= 1; continue;
+            }
+            int slashes = 2;
+            while (slashes > 0 && wi != 0) {
+                wi--;
+                if (path[wi] == '/') {
+                    slashes--;
+                }
+            }
+            state = STATE_SLASH;
+            ri++; wi++; continue;
+        }
+        state = STATE_WRITE;
+        path[wi++] = '.';
+        path[wi] = path[ri];
+        ri++; wi++; continue;
+        // STATE_DOT END
+    }
+    wi -= wi > 1 && path[wi - 1] == '/';
+    path[wi] = '\0';
+    // return path;
+    return 0;
+}
+
 
 static int validate_path(char *path, mode_t mode) {
     int ret;
-    if((ret = sanitize_path(path)) < 0)
+    if((ret = simplify_path(path)) < 0)
         return ret;
     if(strncmp(path, "/..", 3) == 0) // trying to access outside the location. Although I don't have to bother about it, vfs will take care of it.
         return -EINVAL;
     if(strncmp(path, novaIsoHomePath, novaIsoHomePathLen) == 0)
         return 0;
+    return -1;
 }

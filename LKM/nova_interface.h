@@ -45,12 +45,13 @@ static inline size_t novaIsoSetParam(const char *buf, size_t count) {
         {
             char *path;
             int ret;
+            printk(KERN_ALERT "Nova Set Home: %zu %zu %zu\n", count, sizeof(struct nova_user2lkm), myorder->len);
             if(myorder->len == 0 || count < (sizeof(struct nova_user2lkm) + myorder->len))
                 return -EINVAL;
             if(myorder->len > PATH_MAX)
                 return -ENAMETOOLONG;
             path = myorder->value;
-            if(path[0] != '/' || path[myorder->len - 1] == 0) //path have to be a absolute path and null terminated
+            if(path[0] != '/' || path[myorder->len - 1] != 0) //path have to be a absolute path and null terminated
                 return -EINVAL;
             if((ret = novaSetHomePath(path, myorder->len)) < 0)
                 return ret;

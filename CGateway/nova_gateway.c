@@ -172,7 +172,15 @@ static void setupUidGid(int argc, char *argv[]) {
 //    }
 
     printf("Function gid: %d, uid: %d\n", CLIENT_FUNCTION_GROUP_ID, CLIENT_FUNCTION_USER_ID);
-
+    if(!SCRATCH_DIRECTORY) {
+	  	char scratchdir[PATH_MAX];
+	    snprintf(scratchdir, PATH_MAX, "%s", SCRATCH_DIRECTORY);
+	 	printf("scratchdir %s\n", scratchdir);
+	    if(novaSetScratchDir(scratchdir) < 0) {
+	    	perror("novaSetScrathDir at " NOVA_FILE_N_LINE);
+	    	exit(1);
+	    }
+	}
     novaSetNidMpid(CLIENT_FUNCTION_GROUP_ID, getpid());
     novaEnable();
 }
