@@ -172,7 +172,7 @@ static void setupUidGid(int argc, char *argv[]) {
 //    }
 
     printf("Function gid: %d, uid: %d\n", CLIENT_FUNCTION_GROUP_ID, CLIENT_FUNCTION_USER_ID);
-    if(!SCRATCH_DIRECTORY) {
+    if(SCRATCH_DIRECTORY) {
 	  	char scratchdir[PATH_MAX];
 	    snprintf(scratchdir, PATH_MAX, "%s", SCRATCH_DIRECTORY);
 	 	printf("scratchdir %s\n", scratchdir);
